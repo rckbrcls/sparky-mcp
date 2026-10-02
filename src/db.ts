@@ -10,19 +10,29 @@ export const db = new DatabaseSync(join(config.dataDir, "sparky-mcp.db"));
 db.exec(`
   PRAGMA journal_mode = WAL;
 
-  CREATE TABLE IF NOT EXISTS inbox (
-    id TEXT PRIMARY KEY,
-    payload TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending',
-    created_at TEXT NOT NULL,
-    imported_at TEXT
-  );
+  DROP TABLE IF EXISTS inbox;
+  DROP TABLE IF EXISTS snapshot;
 
-  CREATE TABLE IF NOT EXISTS snapshot (
+  CREATE TABLE IF NOT EXISTS mirror (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS commands (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    target_id TEXT,
+    base_version TEXT,
+    payload TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    result TEXT,
+    error TEXT,
+    created_at TEXT NOT NULL,
+    claimed_at TEXT,
+    finished_at TEXT
+  );
+  CREATE INDEX IF NOT EXISTS commands_status_created_at ON commands (status, created_at);
 
   CREATE TABLE IF NOT EXISTS oauth_clients (
     client_id TEXT PRIMARY KEY,

@@ -3,9 +3,12 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { Hono } from "hono";
 import { api } from "./api.js";
 import { requireMcpAuth } from "./auth.js";
+import { startCommandMaintenance } from "./commands.js";
 import { config } from "./config.js";
 import { createMcpServer } from "./mcp.js";
 import { oauth } from "./oauth.js";
+
+startCommandMaintenance();
 
 const app = new Hono();
 
