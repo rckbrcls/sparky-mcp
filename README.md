@@ -19,6 +19,8 @@ Claude / ChatGPT / Claude Code / Codex
 
 The app owns the data. The server answers reads from the mirror and queues writes; the app applies commands in order and re-uploads the mirror. Changes queued while the app is closed are applied when it opens. Read results include `syncedAt` and `stale: true` when the mirror is older than 24 hours.
 
+> Step-by-step setup (Docker, Tailscale Funnel, app, and every client): [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md).
+
 ## Run it
 
 ```bash
@@ -59,9 +61,9 @@ Set `PUBLIC_URL` to the `https://<host>.<tailnet>.ts.net` address it prints. The
 - **ChatGPT:** enable developer mode, add a connector with `PUBLIC_URL/mcp`, same OAuth flow.
 - **Claude Code:**
   ```bash
-  claude mcp add --transport http sparky PUBLIC_URL/mcp --header "Authorization: Bearer $API_TOKEN"
+  claude mcp add --scope user --transport http sparky PUBLIC_URL/mcp --header "Authorization: Bearer $API_TOKEN"
   ```
-- **Codex:** add an HTTP MCP server pointing to `PUBLIC_URL/mcp` with the same bearer header.
+- **Codex:** `codex mcp add sparky --url PUBLIC_URL/mcp --bearer-token-env-var SPARKY_MCP_TOKEN` (export your `API_TOKEN` as `SPARKY_MCP_TOKEN` first).
 
 Client UIs change often; check each product's current documentation for remote MCP connectors and plan requirements.
 
