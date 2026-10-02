@@ -80,7 +80,7 @@ export function summaryText(state: SummaryState, options: UIOptions = {}): strin
     "Public access": state.funnel === null ? "Unknown" : state.funnel ? "On" : "Off",
     "Last app sync": relativeTime(state.syncedAt, state.now),
   }, options));
-  lines.push("", `${color("Next step", 2, options)}  ${highlight(nextStep(state), options)}`);
+  lines.push("", `${color("Next step:", 2, options)} ${highlight(nextStep(state), options)}`);
   return lines.join("\n");
 }
 
