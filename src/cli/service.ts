@@ -33,13 +33,13 @@ export function serviceFile(platform = process.platform): string {
 function domain(): string { return `gui/${process.getuid?.()}`; }
 function target(): string { return `${domain()}/${label}`; }
 
-export async function serviceState(): Promise<string> {
+export async function serviceState(timeout = 10000, signal?: AbortSignal): Promise<string> {
   if (process.platform === "linux") {
-    const result = await run(["systemctl", "--user", "is-active", "sparky-mcp.service"]);
+    const result = await run(["systemctl", "--user", "is-active", "sparky-mcp.service"], { timeout, signal });
     return result.stdout.trim() || (result.code === 127 ? "unavailable" : "inactive");
   }
   if (process.platform === "darwin") {
-    const result = await run(["launchctl", "print", target()]);
+    const result = await run(["launchctl", "print", target()], { timeout, signal });
     if (result.code !== 0) return result.code === 127 ? "unavailable" : "inactive";
     return /state = running/.test(result.stdout) ? "active" : "loaded";
   }
@@ -52,7 +52,8 @@ export function executable(): string {
   return path;
 }
 
-export async function manageService(action: "start" | "stop" | "restart") {
+export async function manageService(action: "start" | "stop" | "restart", signal?: AbortSignal) {
+  signal?.throwIfAborted();
   const file = serviceFile();
   if (action === "start") {
     if (!existsSync(paths().config)) throw new Error("Run `sparky-mcp init` first.");
@@ -64,21 +65,21 @@ export async function manageService(action: "start" | "stop" | "restart") {
       writeFileSync(file, text, { mode: 0o600 });
     }
     if (process.platform === "linux") {
-      await requireRun(["systemctl", "--user", "daemon-reload"]);
-      await requireRun(["systemctl", "--user", "enable", "--now", "sparky-mcp.service"]);
-      if (changed) await requireRun(["systemctl", "--user", "restart", "sparky-mcp.service"]);
+      await requireRun(["systemctl", "--user", "daemon-reload"], { signal });
+      await requireRun(["systemctl", "--user", "enable", "--now", "sparky-mcp.service"], { signal });
+      if (changed) await requireRun(["systemctl", "--user", "restart", "sparky-mcp.service"], { signal });
     } else {
-      const loaded = await run(["launchctl", "print", target()]);
-      if (changed && loaded.code === 0) await requireRun(["launchctl", "bootout", target()]);
-      if (changed || loaded.code !== 0) await requireRun(["launchctl", "bootstrap", domain(), file]);
-      else await requireRun(["launchctl", "kickstart", "-k", target()]);
+      const loaded = await run(["launchctl", "print", target()], { signal });
+      if (changed && loaded.code === 0) await requireRun(["launchctl", "bootout", target()], { signal });
+      if (changed || loaded.code !== 0) await requireRun(["launchctl", "bootstrap", domain(), file], { signal });
+      else await requireRun(["launchctl", "kickstart", "-k", target()], { signal });
     }
   } else if (process.platform === "linux") {
-    await requireRun(["systemctl", "--user", action, "sparky-mcp.service"]);
+    await requireRun(["systemctl", "--user", action, "sparky-mcp.service"], { signal });
   } else if (action === "stop") {
-    await requireRun(["launchctl", "bootout", target()]);
+    await requireRun(["launchctl", "bootout", target()], { signal });
   } else {
-    await requireRun(["launchctl", "kickstart", "-k", target()]);
+    await requireRun(["launchctl", "kickstart", "-k", target()], { signal });
   }
-  return { action, state: await serviceState() };
+  return { action, state: await serviceState(10000, signal) };
 }

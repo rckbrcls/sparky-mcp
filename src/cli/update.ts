@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { chmodSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { executable, manageService, serviceState } from "./service.js";
+import { color, symbol, spinner } from "./ui.js";
 import { version } from "./version.js";
 
 const repository = "rckbrcls/sparky-mcp";
@@ -89,9 +90,13 @@ export async function performUpdate(release: Awaited<ReturnType<typeof checkUpda
 }
 
 export async function update(checkOnly = false) {
-  const release = await checkUpdate();
+  const checking = spinner("Checking for updates");
+  let release: Awaited<ReturnType<typeof checkUpdate>>;
+  try { release = await checkUpdate(); } finally { checking.stop(); }
   if (!release.available) { console.log(`Up to date (${release.current}).`); return; }
-  if (checkOnly) { console.log(`Update available: ${release.current} → ${release.latest}. Run sparky-mcp update.`); return; }
-  const result = await performUpdate(release);
-  console.log(`Updated to ${result.version}.${result.restarted ? " Service restarted." : ""}`);
+  if (checkOnly) { console.log(`Update available: ${release.current} ${symbol("›")} ${release.latest}. Run sparky-mcp update.`); return; }
+  const installing = spinner("Installing update");
+  let result: Awaited<ReturnType<typeof performUpdate>>;
+  try { result = await performUpdate(release); } finally { installing.stop(); }
+  console.log(`${color(symbol("✓"), 32)} Updated to ${result.version}.${result.restarted ? " Service restarted." : ""}`);
 }

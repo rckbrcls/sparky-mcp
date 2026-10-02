@@ -4,7 +4,7 @@ import { Database } from "bun:sqlite";
 import { settings } from "./envfile.js";
 import { serviceState } from "./service.js";
 import { copy } from "./clipboard.js";
-import { printFields } from "./ui.js";
+import { printFields, hint } from "./ui.js";
 
 export function mask(value: string, reveal = false): string { return reveal ? value : value ? `••••${value.slice(-4)}` : "Not configured"; }
 
@@ -49,7 +49,7 @@ export async function info(options: { reveal?: boolean; copy?: "token" | "passwo
   if (options.copy) { await copySecret(options.copy); console.log("Copied"); return; }
   const fields = await getInfo(options.reveal);
   printFields(fields);
-  console.log("\nPair the app: sparky-mcp pair");
+  hint("Pair the app: sparky-mcp pair");
   if (fields.Connector !== "Not configured") {
     const url = `'${fields.Connector.replace(/'/g, "'\\''")}'`;
     console.log(`\nclaude mcp add --scope user --transport http sparky ${url} --header "Authorization: Bearer $API_TOKEN"\ncodex mcp add sparky --url ${url} --bearer-token-env-var SPARKY_MCP_TOKEN`);

@@ -3,6 +3,9 @@ import { Hono } from "hono";
 import { randomToken, safeEqual, sha256 } from "./auth.js";
 import { config } from "./config.js";
 import { db } from "./db.js";
+import characterPath from "./assets/sparky-character.webp" with { type: "file" };
+
+const character = `data:image/webp;base64,${Buffer.from(await Bun.file(characterPath).arrayBuffer()).toString("base64")}`;
 
 const ACCESS_TTL_MS = 60 * 60 * 1000;
 const REFRESH_TTL_MS = 90 * 24 * 60 * 60 * 1000;
@@ -65,27 +68,34 @@ function consentPage(params: Record<string, string>, clientName: string, error?:
 <meta charset="utf-8">
 <meta name="google" content="notranslate">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:,">
 <title>Authorize Sparky</title>
 <style>
-  :root { --bg:#f6f4ef; --surface:#fffdf9; --border:#e6e1d6; --text:#1f1d19; --muted:#6f6a5f; --accent:#d9480f; --danger:#b42318; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#161512; --surface:#1e1d19; --border:#2c2a24; --text:#efece4; --muted:#9a9488; --accent:#f76707; --danger:#f97066; } }
+  :root { --bg:#ededed; --surface:#ffffff; --field:#f5f5f5; --border:#cccccc; --text:#000000; --muted:#666666; --accent:#006bff; --on-accent:#ffffff; --danger:#ef4444; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0d0d0d; --surface:#191919; --field:#0d0d0d; --border:#2d2d2d; --text:#ffffff; --muted:#a0a0a0; --danger:#ff5959; } }
   * { box-sizing: border-box; }
-  body { margin:0; min-height:100vh; display:grid; place-items:center; padding:16px; background:var(--bg); color:var(--text); font:16px/1.5 -apple-system, system-ui, sans-serif; }
-  main { width:100%; max-width:380px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:24px; }
-  h1 { margin:0 0 4px; font-size:20px; }
-  p { margin:0 0 16px; color:var(--muted); font-size:14px; }
-  label { display:block; font-size:13px; margin-bottom:6px; }
-  input[type=password] { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--text); font:inherit; }
+  body { margin:0; min-height:100vh; display:grid; place-items:center; padding:16px; background:var(--bg); color:var(--text); font:16px/1.5 -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+  main { width:100%; max-width:380px; background:var(--surface); border:1px solid var(--border); border-radius:24px; padding:28px 24px 24px; }
+  .art { display:block; width:96px; height:96px; margin:0 auto 14px; }
+  h1 { margin:0 0 6px; font-size:20px; font-weight:700; text-align:center; }
+  .lead { margin:0 0 20px; color:var(--muted); font-size:14px; text-align:center; }
+  .lead strong { color:var(--text); font-weight:600; }
+  label { display:block; font-size:13px; font-weight:600; margin-bottom:6px; }
+  input[type=password] { width:100%; padding:11px 16px; border:1px solid var(--border); border-radius:24px; background:var(--field); color:var(--text); font:inherit; }
   input[type=password]:focus-visible, button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-  button { margin-top:16px; width:100%; padding:10px; border:0; border-radius:6px; background:var(--accent); color:#fff; font:inherit; font-weight:600; cursor:pointer; }
+  button { margin-top:16px; width:100%; padding:11px; border:0; border-radius:24px; background:var(--accent); color:var(--on-accent); font:inherit; font-weight:600; cursor:pointer; }
   button:hover { filter:brightness(1.08); }
-  .error { color:var(--danger); font-size:13px; margin:12px 0 0; }
+  button:active { filter:brightness(0.92); }
+  .error { color:var(--danger); font-size:13px; margin:10px 0 0; }
+  .note { margin:16px 0 0; color:var(--muted); font-size:12px; text-align:center; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Authorize access</h1>
-  <p><strong>${escapeHtml(clientName)}</strong> wants to create memories in your Sparky app.</p>
+  <img class="art" src="${character}" alt="" width="96" height="96">
+  <h1>Connect to Sparky</h1>
+  <p class="lead"><strong>${escapeHtml(clientName)}</strong> wants to read and manage your Minds and Memories.</p>
   <form method="post" action="/authorize">
     ${hidden}
     <label for="password">Server password</label>
@@ -93,6 +103,7 @@ function consentPage(params: Record<string, string>, clientName: string, error?:
     ${error ? `<p class="error" role="alert">${escapeHtml(error)}</p>` : ""}
     <button type="submit">Authorize</button>
   </form>
+  <p class="note">Only continue if you started this connection.</p>
 </main>
 </body>
 </html>`;

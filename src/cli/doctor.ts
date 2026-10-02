@@ -8,7 +8,7 @@ import { health } from "./status.js";
 import { run, type RunResult } from "./process.js";
 import { parseFunnel } from "./funnel.js";
 import { confirm } from "./prompt.js";
-import { printChecks, type Check } from "./ui.js";
+import { printChecks, hint, type Check } from "./ui.js";
 
 export interface DoctorProbes {
   config(): Promise<{ exists: boolean; mode: number; values: Record<string, string>; port: string; data: string }>;
@@ -140,10 +140,12 @@ export async function fixDoctor(options: { yes?: boolean } = {}, probes: DoctorP
   return { checks: await diagnose(probes), fixed, hints };
 }
 
-export async function doctor(options: { fix?: boolean; yes?: boolean } = {}) {
-  const result = options.fix ? await fixDoctor(options) : { checks: await diagnose(), fixed: [], hints: [] };
+export function doctorExitCode(checks: Check[]): number { return checks.some((check) => check.state === "FAIL") ? 1 : 0; }
+
+export async function doctor(options: { fix?: boolean; yes?: boolean } = {}, probes: DoctorProbes = doctorProbes, fixes: FixProbes = fixProbes) {
+  const result = options.fix ? await fixDoctor(options, probes, fixes) : { checks: await diagnose(probes), fixed: [], hints: [] };
   printChecks(result.checks);
   if (options.fix) console.log(`Fixed: ${result.fixed.join(", ") || "None"}`);
-  for (const hint of result.hints) console.log(hint);
-  if (result.checks.some((check) => check.state === "FAIL")) process.exitCode = 1;
+  for (const text of result.hints) hint(text);
+  if (doctorExitCode(result.checks)) process.exitCode = 1;
 }

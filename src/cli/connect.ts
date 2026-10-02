@@ -4,6 +4,7 @@ import { publicUrl, readEnv } from "./envfile.js";
 import { run } from "./process.js";
 import { copy } from "./clipboard.js";
 import { confirm, secret, line } from "./prompt.js";
+import { color, symbol } from "./ui.js";
 import { getFunnelStatus } from "./funnel.js";
 
 export interface ConnectOptions { url?: string; tokenStdin?: boolean }
@@ -25,7 +26,7 @@ export const connectProbes: ConnectProbes = {
   config: () => ({ exists: existsSync(paths().config), values: readEnv() }),
   installed: (binary) => Boolean(Bun.which(binary)),
   run, secret, stdin: () => Bun.stdin.text(), copy, confirm, wait: line,
-  funnel: getFunnelStatus, tty: Boolean(process.stdin.isTTY), message: console.log,
+  funnel: getFunnelStatus, tty: Boolean(process.stdin.isTTY && process.stdout.isTTY && process.env.TERM !== "dumb"), message: console.log,
 };
 
 export function connectorUrl(value: string): string {
@@ -75,5 +76,6 @@ export async function connectTarget(target: string, options: ConnectOptions = {}
 }
 
 export async function connect(target: string, options: ConnectOptions) {
-  console.log((await connectTarget(target, options)).message);
+  const result = await connectTarget(target, options);
+  console.log(`${color(symbol("✓"), 32)} ${result.message}`);
 }

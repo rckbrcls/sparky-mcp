@@ -1,12 +1,15 @@
 export type RunResult = { code: number; stdout: string; stderr: string };
 
-export async function run(args: string[], options: { input?: string; inherit?: boolean; timeout?: number } = {}): Promise<RunResult> {
+export async function run(args: string[], options: { input?: string; inherit?: boolean; timeout?: number; signal?: AbortSignal } = {}): Promise<RunResult> {
+  options.signal?.throwIfAborted();
   try {
     const child = Bun.spawn(args, {
       stdin: options.input === undefined ? (options.inherit ? "inherit" : "ignore") : new Blob([options.input]),
       stdout: options.inherit ? "inherit" : "pipe",
       stderr: options.inherit ? "inherit" : "pipe",
     });
+    const abort = () => child.kill();
+    options.signal?.addEventListener("abort", abort, { once: true });
     const timer = options.inherit ? undefined : setTimeout(() => child.kill(), options.timeout ?? 10000);
     try {
       const [code, stdout, stderr] = await Promise.all([
@@ -14,9 +17,10 @@ export async function run(args: string[], options: { input?: string; inherit?: b
         options.inherit ? "" : new Response(child.stdout).text(),
         options.inherit ? "" : new Response(child.stderr).text(),
       ]);
+      options.signal?.throwIfAborted();
       return { code, stdout, stderr };
-    } finally { if (timer) clearTimeout(timer); }
-  } catch { return { code: 127, stdout: "", stderr: `${args[0]} is unavailable.` }; }
+    } finally { if (timer) clearTimeout(timer); options.signal?.removeEventListener("abort", abort); }
+  } catch { options.signal?.throwIfAborted(); return { code: 127, stdout: "", stderr: `${args[0]} is unavailable.` }; }
 }
 
 export async function requireRun(args: string[], options: Parameters<typeof run>[1] = {}) {

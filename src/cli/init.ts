@@ -4,6 +4,7 @@ import { createInterface } from "node:readline/promises";
 import { createDirectories, paths } from "./paths.js";
 import { publicUrl, readEnv, validPort, writeEnv } from "./envfile.js";
 import { run } from "./process.js";
+import { printFields, hint } from "./ui.js";
 
 export interface InitOptions { publicUrl?: string; timezone?: string; port?: string; importEnv?: string; force?: boolean; yes?: boolean }
 
@@ -25,11 +26,11 @@ export async function initialize(options: InitOptions) {
       if (result.code === 0 && status.Self?.DNSName) url = `https://${status.Self.DNSName.replace(/\.$/, "")}`;
     } catch {}
   }
-  if (!url && process.stdin.isTTY && !options.yes) url = await prompt("Public HTTPS URL: ");
+  if (!url && process.stdin.isTTY && process.stdout.isTTY && process.env.TERM !== "dumb" && !options.yes) url = await prompt("Public HTTPS URL: ");
   if (!url) throw new Error("Provide --public-url https://your-host. Run tailscale login to enable auto-detection.");
   url = publicUrl(url);
   let timezone = options.timezone || imported.USER_TIMEZONE || Intl.DateTimeFormat().resolvedOptions().timeZone;
-  if (!timezone && process.stdin.isTTY && !options.yes) timezone = await prompt("Time zone [UTC]: ") || "UTC";
+  if (!timezone && process.stdin.isTTY && process.stdout.isTTY && process.env.TERM !== "dumb" && !options.yes) timezone = await prompt("Time zone [UTC]: ") || "UTC";
   timezone ||= "UTC";
   try { new Intl.DateTimeFormat("en-US", { timeZone: timezone }); } catch { throw new Error("Invalid time zone."); }
   const values = {
@@ -46,5 +47,7 @@ export async function initialize(options: InitOptions) {
 
 export async function init(options: InitOptions) {
   const result = await initialize(options);
-  console.log(`Created ${result.config}\nData: ${result.data}\nLogs: ${result.logs}\n\nNext steps:\n  sparky-mcp start\n  sparky-mcp info\n  sparky-mcp doctor`);
+  console.log("Configuration created.");
+  printFields({ Config: result.config, Data: result.data, Logs: result.logs });
+  hint("Next steps: sparky-mcp start, sparky-mcp info, sparky-mcp doctor");
 }

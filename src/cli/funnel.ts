@@ -16,7 +16,7 @@ export interface FunnelProbes {
 
 export const funnelProbes: FunnelProbes = {
   config: () => ({ exists: existsSync(paths().config), values: readEnv() }),
-  run, confirm, wait: line, tty: Boolean(process.stdin.isTTY), message: console.log,
+  run, confirm, wait: line, tty: Boolean(process.stdin.isTTY && process.stdout.isTTY && process.env.TERM !== "dumb"), message: console.log,
 };
 
 export async function tailscaleHost(probes: FunnelProbes = funnelProbes): Promise<string> {
@@ -76,6 +76,14 @@ async function execute(args: string[], probes: FunnelProbes) {
   if (result.code !== 0) throw new Error(`Funnel command failed (${result.code}). Check Tailscale and run the displayed command again.`);
 }
 
+export function funnelWarning(url?: string, command?: string): string {
+  return box("Public internet access", [
+    `Funnel makes /mcp and /api reachable from the public internet${url ? ` at ${url}` : ""}.`,
+    "Anyone with the URL can reach your server's login. Keep the API token and admin password private.",
+    ...(command ? [command] : []),
+  ]);
+}
+
 export async function manageFunnel(action: string, options: { yes?: boolean } = {}, probes: FunnelProbes = funnelProbes) {
   if (!["on", "off", "status"].includes(action)) throw new Error("Funnel expects on, off, or status.");
   if (action === "status") return getFunnelStatus(probes);
@@ -84,11 +92,7 @@ export async function manageFunnel(action: string, options: { yes?: boolean } = 
   const port = action === "on" ? validPort(cfg.values.PORT || "8787") : "";
   const dns = await tailscaleHost(probes);
   const args = action === "on" ? ["tailscale", "funnel", "--bg", port] : ["tailscale", "funnel", "--https=443", "off"];
-  probes.message(box("Public internet access", action === "on" ? [
-    `Funnel makes /mcp and /api reachable from the public internet at https://${dns}.`,
-    "Anyone with the URL can reach your server's login. Keep the API token and admin password private.",
-    args.join(" "),
-  ] : ["This disables public Funnel access.", args.join(" ")]));
+  probes.message(action === "on" ? funnelWarning(`https://${dns}`, args.join(" ")) : box("Public internet access", ["This disables public Funnel access.", args.join(" ")]));
   if (!options.yes && !probes.tty) throw new Error("Pass --yes to confirm.");
   if (!await probes.confirm("Continue?", options)) throw new Error("Cancelled.");
   await execute(args, probes);

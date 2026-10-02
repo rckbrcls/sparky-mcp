@@ -27,10 +27,11 @@ export const pairProbes: PairProbes = {
     return db;
   },
   now: Date.now, random: randomInt, sleep: Bun.sleep,
-  tty: Boolean(process.stdout.isTTY), message: console.log,
+  tty: Boolean(process.stdin.isTTY && process.stdout.isTTY && process.env.TERM !== "dumb"), message: console.log,
 };
 
-export async function pair(options: { noWait?: boolean } = {}, probes: PairProbes = pairProbes): Promise<void> {
+export async function pair(options: { noWait?: boolean; signal?: AbortSignal } = {}, probes: PairProbes = pairProbes): Promise<boolean> {
+  options.signal?.throwIfAborted();
   const config = probes.config();
   if (!config.exists) throw new Error("Run sparky-mcp init first.");
   if (!config.values.PUBLIC_URL) throw new Error("PUBLIC_URL is not configured. Run sparky-mcp init first.");
@@ -46,21 +47,23 @@ export async function pair(options: { noWait?: boolean } = {}, probes: PairProbe
       "Expires in 5 minutes. This code works once.",
       "Open Sparky > Settings > Advanced > Remote MCP, enter the server URL and this code, then tap Pair.",
     ]));
-    if (options.noWait || !probes.tty) return;
+    if (options.noWait || !probes.tty) return false;
     process.on("SIGINT", cancel);
     while (!cancelled) {
+      options.signal?.throwIfAborted();
       const row = db.prepare("SELECT used_at FROM pairing_codes WHERE code_hash = ?").get(hash) as { used_at: number | null } | null;
       if (row?.used_at !== null && row?.used_at !== undefined) {
         probes.message("Paired. The app now has access.");
-        return;
+        return true;
       }
       if (!row || probes.now() >= expiresAt) {
         probes.message("Code expired. Run sparky-mcp pair again.");
-        process.exitCode = 1;
-        return;
+        if (!options.signal) process.exitCode = 1;
+        return false;
       }
       await probes.sleep(1000);
     }
+    return false;
   } finally {
     process.removeListener("SIGINT", cancel);
     db.close();

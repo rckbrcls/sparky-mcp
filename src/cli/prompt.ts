@@ -1,20 +1,21 @@
 import { createInterface } from "node:readline/promises";
 
-export async function line(question: string): Promise<string> {
-  if (!process.stdin.isTTY) throw new Error("A terminal is required.");
+export async function line(question: string, signal?: AbortSignal): Promise<string> {
+  if (!process.stdin.isTTY || !process.stdout.isTTY || process.env.TERM === "dumb") throw new Error("A terminal is required.");
   const input = createInterface({ input: process.stdin, output: process.stdout });
-  try { return (await input.question(question)).trim(); } finally { input.close(); }
+  if (signal) input.on("SIGINT", () => { process.emit("SIGINT"); });
+  try { return (await input.question(question, { signal })).trim(); } finally { input.close(); }
 }
 
-export async function confirm(question: string, options: { yes?: boolean; defaultYes?: boolean } = {}): Promise<boolean> {
+export async function confirm(question: string, options: { yes?: boolean; defaultYes?: boolean; signal?: AbortSignal } = {}): Promise<boolean> {
   if (options.yes) return true;
-  if (!process.stdin.isTTY) throw new Error("Pass --yes to confirm.");
-  const answer = await line(`${question} ${options.defaultYes ? "[Y/n]" : "[y/N]"} `);
+  if (!process.stdin.isTTY || !process.stdout.isTTY || process.env.TERM === "dumb") throw new Error("Pass --yes to confirm.");
+  const answer = await line(`${question} ${options.defaultYes ? "[Y/n]" : "[y/N]"} `, options.signal);
   return /^y(?:es)?$/i.test(answer) || (!answer && Boolean(options.defaultYes));
 }
 
 export async function secret(question: string): Promise<string> {
-  if (!process.stdin.isTTY) throw new Error("Use --token-stdin or run in a terminal to enter the token.");
+  if (!process.stdin.isTTY || !process.stdout.isTTY || process.env.TERM === "dumb") throw new Error("Use --token-stdin or run in a terminal to enter the token.");
   const input = process.stdin;
   const wasRaw = input.isRaw;
   const wasPaused = input.isPaused();
