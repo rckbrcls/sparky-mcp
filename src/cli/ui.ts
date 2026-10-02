@@ -16,3 +16,9 @@ export function printChecks(checks: Check[]) {
     console.log(`${color(`${symbol} ${check.state}`, { PASS: 32, WARN: 33, FAIL: 31 }[check.state])}  ${check.label.padEnd(width)}  ${check.detail}`);
   }
 }
+
+export function box(title: string, lines: string[]): string {
+  const width = Math.max(title.length, ...lines.map((text) => text.length));
+  const border = `+${"-".repeat(width + 2)}+`;
+  return [border, `| ${color(title.padEnd(width), 33)} |`, ...lines.map((text) => `| ${text.padEnd(width)} |`), border].join("\n");
+}

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { Database } from "bun:sqlite";
 import { settings } from "./envfile.js";
 import { serviceState } from "./service.js";
-import { run } from "./process.js";
+import { copy } from "./clipboard.js";
 import { printFields } from "./ui.js";
 
 export function mask(value: string, reveal = false): string { return reveal ? value : value ? `••••${value.slice(-4)}` : "Not configured"; }
@@ -42,9 +42,7 @@ export async function getInfo(reveal = false) {
 export async function copySecret(kind: "token" | "password") {
   const value = settings().values[kind === "token" ? "API_TOKEN" : "ADMIN_PASSWORD"];
   if (!value) throw new Error("Secret is not configured. Run `sparky-mcp init` first.");
-  const commands = process.platform === "darwin" ? [["pbcopy"]] : [["wl-copy"], ["xclip", "-selection", "clipboard"], ["xsel", "--clipboard", "--input"]];
-  for (const args of commands) if ((await run(args, { input: value })).code === 0) return;
-  throw new Error("Clipboard unavailable. Install wl-copy, xclip, or xsel on Linux.");
+  await copy(value);
 }
 
 export async function info(options: { reveal?: boolean; copy?: "token" | "password" }) {

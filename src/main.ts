@@ -8,6 +8,8 @@ import { logs } from "./cli/logs.js";
 import { info } from "./cli/info.js";
 import { doctor } from "./cli/doctor.js";
 import { update } from "./cli/update.js";
+import { funnel } from "./cli/funnel.js";
+import { connect } from "./cli/connect.js";
 import { version } from "./cli/version.js";
 
 const usage = `Usage: sparky-mcp <command> [flags]
@@ -21,7 +23,9 @@ const usage = `Usage: sparky-mcp <command> [flags]
   status    Show service state and local health
   logs      Show service logs [-f]
   info      Show connection details [--reveal] [--copy token|password]
-  doctor    Check configuration and connectivity
+  funnel    Manage public access: on|off|status [--yes]
+  connect   Connect claude-code|codex|claude-web|chatgpt [--url URL] [--token-stdin]
+  doctor    Check configuration and connectivity [--fix] [--yes]
   update    Install the latest release [--check]
   version   Show version
 
@@ -57,6 +61,17 @@ async function main(args: string[]) {
     const copy = f["--copy"];
     if (copy !== undefined && copy !== "token" && copy !== "password") throw new Error("--copy expects token or password.");
     await info({ reveal: Boolean(f["--reveal"]), copy });
+  } else if (command === "funnel") {
+    const [action, ...args] = rest;
+    const f = flags(args, { "--yes": "boolean" });
+    await funnel(action || "", { yes: Boolean(f["--yes"]) });
+  } else if (command === "connect") {
+    const [target, ...args] = rest;
+    const f = flags(args, { "--url": "value", "--token-stdin": "boolean" });
+    await connect(target || "", { url: f["--url"] as string | undefined, tokenStdin: Boolean(f["--token-stdin"]) });
+  } else if (command === "doctor") {
+    const f = flags(rest, { "--fix": "boolean", "--yes": "boolean" });
+    await doctor({ fix: Boolean(f["--fix"]), yes: Boolean(f["--yes"]) });
   } else if (command === "logs") {
     const f = flags(rest, { "-f": "boolean" });
     await logs(Boolean(f["-f"]));
@@ -64,7 +79,7 @@ async function main(args: string[]) {
     const f = flags(rest, { "--check": "boolean" });
     await update(Boolean(f["--check"]));
   } else {
-    const commands: Record<string, () => Promise<void>> = { serve, start, stop, restart, status, doctor };
+    const commands: Record<string, () => Promise<void>> = { serve, start, stop, restart, status };
     const action = commands[command!];
     if (!action) throw new Error(`Unknown command: ${command}. Use --help for usage.`);
     flags(rest, {});

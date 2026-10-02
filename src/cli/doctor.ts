@@ -1,11 +1,13 @@
-import { existsSync, statSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { paths } from "./paths.js";
 import { settings, publicUrl, validPort } from "./envfile.js";
-import { serviceFile, serviceState } from "./service.js";
+import { manageService, serviceFile, serviceState } from "./service.js";
 import { databaseInfo } from "./info.js";
 import { health } from "./status.js";
 import { run, type RunResult } from "./process.js";
+import { parseFunnel } from "./funnel.js";
+import { confirm } from "./prompt.js";
 import { printChecks, type Check } from "./ui.js";
 
 export interface DoctorProbes {
@@ -79,8 +81,8 @@ export async function diagnose(probes: DoctorProbes = doctorProbes): Promise<Che
   } catch {}
   add("Tailscale", loggedIn ? "PASS" : "FAIL", loggedIn ? "Installed and logged in." : "Install Tailscale and run tailscale login.");
   const funnel = await command(["tailscale", "funnel", "status"]);
-  const funnelActive = funnel.code === 0 && Boolean(dns) && funnel.stdout.toLowerCase().includes(`https://${dns.toLowerCase()}`) && /funnel\s+on/i.test(funnel.stdout);
-  add("Funnel", funnelActive ? "WARN" : "FAIL", funnelActive ? "Funnel exposes this server publicly." : `Run sudo tailscale funnel --bg ${portValid ? cfg.port : "8787"}. Install Tailscale if unavailable.`);
+  const funnelActive = funnel.code === 0 && Boolean(dns) && parseFunnel(funnel.stdout, dns).active;
+  add("Funnel", funnelActive ? "WARN" : "FAIL", funnelActive ? "Funnel exposes this server publicly." : `Run sparky-mcp funnel on (handles sudo tailscale funnel --bg ${portValid ? cfg.port : "8787"} when needed). Install Tailscale if unavailable.`);
   const matches = Boolean(url && dns && new URL(url).hostname.toLowerCase() === dns.toLowerCase());
   add("Tailscale hostname", matches ? "PASS" : "WARN", matches ? "PUBLIC_URL matches this host." : "Set PUBLIC_URL to this host's Tailscale HTTPS URL if using Funnel.");
   const reachable = Boolean(url) && await probes.health(`${url}/health`).catch(() => false);
@@ -90,8 +92,58 @@ export async function diagnose(probes: DoctorProbes = doctorProbes): Promise<Che
   return checks;
 }
 
-export async function doctor() {
-  const checks = await diagnose();
-  printChecks(checks);
-  if (checks.some((check) => check.state === "FAIL")) process.exitCode = 1;
+export interface FixProbes {
+  paths: typeof paths;
+  exists(file: string): boolean;
+  chmod(file: string, mode: number): void;
+  mkdir(file: string, mode: number): void;
+  confirm: typeof confirm;
+  start(): Promise<unknown>;
+}
+
+export const fixProbes: FixProbes = {
+  paths, exists: existsSync, chmod: chmodSync,
+  mkdir: (file, mode) => { mkdirSync(file, { recursive: true, mode }); },
+  confirm, start: () => manageService("start"),
+};
+
+export async function fixDoctor(options: { yes?: boolean } = {}, probes: DoctorProbes = doctorProbes, fixes: FixProbes = fixProbes) {
+  const checks = await diagnose(probes);
+  const fixed: string[] = [];
+  const hints: string[] = [];
+  const failed = (label: string) => checks.some((check) => check.label === label && check.state !== "PASS");
+  const p = fixes.paths();
+  if (failed("Config permissions") && fixes.exists(p.config)) {
+    fixes.chmod(p.config, 0o600);
+    fixed.push("Config permissions (0600)");
+  }
+  const cfg = await probes.config().catch(() => null);
+  for (const dir of [cfg?.data || p.data, p.logs]) {
+    if (!fixes.exists(dir)) { fixes.mkdir(dir, 0o700); fixed.push(`Created ${dir} (0700)`); }
+  }
+  if (probes.platform === "linux" && failed("User linger")) {
+    const args = ["loginctl", "enable-linger", probes.user];
+    if (await fixes.confirm(`Run ${args.join(" ")}?`, options)) {
+      const result = await probes.run(args);
+      if (result.code === 0) fixed.push("User linger");
+      else hints.push(`Run ${args.join(" ")} manually; elevated permissions may be required.`);
+    }
+  }
+  if (failed("Service installed") || failed("Service active")) {
+    if (await fixes.confirm("Run sparky-mcp start?", options)) {
+      try { await fixes.start(); fixed.push("Service started"); }
+      catch { hints.push("Run sparky-mcp start manually; check configuration and service permissions."); }
+    }
+  }
+  if (failed("Tailscale")) hints.push("Run tailscale login. Install Tailscale if unavailable.");
+  if (failed("Funnel")) hints.push("Run sparky-mcp funnel on.");
+  return { checks: await diagnose(probes), fixed, hints };
+}
+
+export async function doctor(options: { fix?: boolean; yes?: boolean } = {}) {
+  const result = options.fix ? await fixDoctor(options) : { checks: await diagnose(), fixed: [], hints: [] };
+  printChecks(result.checks);
+  if (options.fix) console.log(`Fixed: ${result.fixed.join(", ") || "None"}`);
+  for (const hint of result.hints) console.log(hint);
+  if (result.checks.some((check) => check.state === "FAIL")) process.exitCode = 1;
 }
