@@ -36,6 +36,7 @@ export function connectorUrl(value: string): string {
 
 export async function connectTarget(target: string, options: ConnectOptions = {}, probes: ConnectProbes = connectProbes) {
   const targets = ["claude-code", "codex", "claude-web", "chatgpt"];
+  if (!target) throw new Error(`Choose what to connect:\n  claude-code  Register the MCP server in Claude Code\n  codex        Register the MCP server in Codex\n  claude-web   Guided steps for the Claude connector\n  chatgpt      Guided steps for the ChatGPT connector\nExample: sparky-mcp connect claude-code`);
   if (!targets.includes(target)) throw new Error(`Unknown target: ${target}. Valid targets: ${targets.join(", ")}.`);
   const cfg = probes.config();
   const guided = target === "claude-web" || target === "chatgpt";
@@ -46,15 +47,22 @@ export async function connectTarget(target: string, options: ConnectOptions = {}
     const active = await probes.funnel().then((result) => result.active).catch(() => false);
     if (!active) probes.message("Warning: Funnel must be on for public access. Run sparky-mcp funnel on.");
     probes.message(target === "claude-web" ? "1. Open Settings > Connectors > Add custom connector." : "1. Open Settings > Connectors (developer mode) > create connector.");
+    let clipboard = true;
+    const put = async (value: string) => {
+      if (!clipboard) return false;
+      try { await probes.copy(value); return true; } catch { clipboard = false; return false; }
+    };
     try {
-      await probes.copy(url);
-      probes.message("2. Connector URL copied. Paste it in the connector URL field. UI labels may vary.");
+      if (await put(url)) probes.message("2. Connector URL copied. Paste it in the connector URL field. UI labels may vary.");
+      else probes.message(`2. Connector URL (no clipboard on this machine): ${url}`);
       await probes.wait("Press Enter to continue: ");
-      await probes.copy(cfg.values.ADMIN_PASSWORD);
-      probes.message("3. Admin password copied. Paste it on the consent page.");
-      await probes.wait("Press Enter after pasting: ");
-    } finally { await probes.copy(""); }
-    return { target, url, message: "Clipboard cleared. Complete the connector setup in the product." };
+      if (await put(cfg.values.ADMIN_PASSWORD)) probes.message("3. Admin password copied. Paste it on the consent page.");
+      else if (await probes.confirm("No clipboard here (a remote or headless session). Show the admin password on screen?", {})) {
+        probes.message(`3. Admin password: ${cfg.values.ADMIN_PASSWORD}\n   Enter it on the consent page. It stays in your terminal scrollback; run clear afterwards.`);
+      } else probes.message("3. When the consent page asks for the password, run sparky-mcp info --reveal.");
+      await probes.wait("Press Enter after the consent page: ");
+    } finally { if (clipboard) await probes.copy("").catch(() => {}); }
+    return { target, url, message: clipboard ? "Clipboard cleared. Complete the connector setup in the product." : "Complete the connector setup in the product." };
   }
   const binary = target === "claude-code" ? "claude" : "codex";
   if (!probes.installed(binary)) throw new Error(`${binary} is unavailable. Install ${target === "claude-code" ? "Claude Code" : "Codex"} first.`);

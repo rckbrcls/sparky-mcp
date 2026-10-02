@@ -62,7 +62,7 @@ sparky-mcp connect claude-code --url https://my-host.tail1234.ts.net
 
 It asks for the API token with hidden input (or reads it from stdin with `--token-stdin`). Get the token from the server with `ssh my-vps 'sparky-mcp info --reveal'` and paste it; do not share it in chats or tickets.
 
-**Claude (web, desktop, mobile)** and **ChatGPT**: run `sparky-mcp connect claude-web` or `sparky-mcp connect chatgpt` on the server. It copies the connector URL, then the admin password, to your clipboard at the right moments and clears the clipboard afterwards. These connectors need Funnel. Vendor UIs and plan requirements change; check their current remote MCP documentation.
+**Claude (web, desktop, mobile)** and **ChatGPT**: run `sparky-mcp connect claude-web` or `sparky-mcp connect chatgpt` on the server. It copies the connector URL, then the admin password, to your clipboard at the right moments and clears the clipboard afterwards. On a machine with no clipboard (a headless server or a VPS over SSH) it prints the URL instead and asks before showing the password on screen; you can also read it any time with `sparky-mcp info --reveal`. These connectors need Funnel. Vendor UIs and plan requirements change; check their current remote MCP documentation.
 
 Try it: ask "list my minds", then "remind me to call the dentist tomorrow at 9". The reply contains a `commandId`; the app applies it within about 10 seconds, and `get_command_status` shows `done`, `failed`, or `conflict`.
 

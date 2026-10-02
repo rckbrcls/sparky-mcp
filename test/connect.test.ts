@@ -94,3 +94,23 @@ test("codex skips clipboard prompt without a TTY", async () => {
 test("guided flow requires local config even with an explicit URL", async () => {
   await expect(connectTarget("chatgpt", { url: "https://remote.test" }, fake({ tty: true, config: () => ({ exists: false, values: {} }) }))).rejects.toThrow("on the server");
 });
+
+test("guided flow without a clipboard prints the URL and shows the password only when confirmed", async () => {
+  for (const accept of [true, false]) {
+    const messages: string[] = [];
+    const result = await connectTarget("chatgpt", {}, fake({
+      tty: true, copy: async () => { throw new Error("Clipboard unavailable."); },
+      confirm: async () => accept, wait: async () => "", message: (text) => { messages.push(text); },
+    }));
+    const output = messages.join("\n");
+    expect(output).toContain("https://host.test/mcp");
+    expect(output.includes("private-password")).toBe(accept);
+    expect(output).toContain(accept ? "scrollback" : "sparky-mcp info --reveal");
+    expect(result.message).not.toContain("Clipboard cleared");
+  }
+});
+
+test("connect without a target lists the valid targets", async () => {
+  await expect(connectTarget("", {}, fake())).rejects.toThrow("claude-code");
+  await expect(connectTarget("", {}, fake())).rejects.toThrow("Choose what to connect");
+});
