@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { Database } from "bun:sqlite";
+import { pairingSchema } from "./pairing-schema.js";
 import { config } from "./config.js";
 
 mkdirSync(config.dataDir, { recursive: true });
@@ -54,3 +55,5 @@ db.exec(`
     expires_at INTEGER NOT NULL
   );
 `);
+
+db.exec(pairingSchema);

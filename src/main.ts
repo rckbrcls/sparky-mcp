@@ -5,6 +5,7 @@ import { stop } from "./cli/stop.js";
 import { restart } from "./cli/restart.js";
 import { status } from "./cli/status.js";
 import { logs } from "./cli/logs.js";
+import { pair } from "./cli/pair.js";
 import { info } from "./cli/info.js";
 import { doctor } from "./cli/doctor.js";
 import { update } from "./cli/update.js";
@@ -22,6 +23,7 @@ const usage = `Usage: sparky-mcp <command> [flags]
   restart   Restart the user service
   status    Show service state and local health
   logs      Show service logs [-f]
+  pair      Pair the Sparky app [--no-wait]
   info      Show connection details [--reveal] [--copy token|password]
   funnel    Manage public access: on|off|status [--yes]
   connect   Connect claude-code|codex|claude-web|chatgpt [--url URL] [--token-stdin]
@@ -56,6 +58,9 @@ async function main(args: string[]) {
   if (command === "init") {
     const f = flags(rest, { "--public-url": "value", "--timezone": "value", "--port": "value", "--import-env": "value", "--force": "boolean", "--yes": "boolean" });
     await init({ publicUrl: f["--public-url"] as string | undefined, timezone: f["--timezone"] as string | undefined, port: f["--port"] as string | undefined, importEnv: f["--import-env"] as string | undefined, force: Boolean(f["--force"]), yes: Boolean(f["--yes"]) });
+  } else if (command === "pair") {
+    const f = flags(rest, { "--no-wait": "boolean" });
+    await pair({ noWait: Boolean(f["--no-wait"]) });
   } else if (command === "info") {
     const f = flags(rest, { "--reveal": "boolean", "--copy": "value" });
     const copy = f["--copy"];

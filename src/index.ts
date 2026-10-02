@@ -5,6 +5,8 @@ import { requireMcpAuth } from "./auth.js";
 import { startCommandMaintenance } from "./commands.js";
 import { config } from "./config.js";
 import { createMcpServer } from "./mcp.js";
+import { db } from "./db.js";
+import { createPairingApp } from "./pairing.js";
 import { oauth } from "./oauth.js";
 
 startCommandMaintenance();
@@ -13,6 +15,7 @@ const app = new Hono();
 
 app.get("/health", (c) => c.json({ ok: true }));
 app.route("/", oauth);
+app.route("/", createPairingApp(db, config.apiToken));
 app.route("/", api);
 
 app.all("/mcp", requireMcpAuth, async (c) => {

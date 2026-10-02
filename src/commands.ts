@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { cleanupPairing } from "./pairing.js";
 import { db } from "./db.js";
 import { commandPayloadSchemas, commandResultSchema, type CommandResult, type CommandType } from "./schema.js";
 
@@ -77,6 +78,7 @@ export function purgeFinished(): void {
 }
 
 export function startCommandMaintenance(): void {
-  purgeFinished();
-  setInterval(purgeFinished, 60 * 60 * 1000).unref();
+  const maintain = () => { purgeFinished(); cleanupPairing(db); };
+  maintain();
+  setInterval(maintain, 60 * 60 * 1000).unref();
 }

@@ -49,6 +49,7 @@ export async function info(options: { reveal?: boolean; copy?: "token" | "passwo
   if (options.copy) { await copySecret(options.copy); console.log("Copied"); return; }
   const fields = await getInfo(options.reveal);
   printFields(fields);
+  console.log("\nPair the app: sparky-mcp pair");
   if (fields.Connector !== "Not configured") {
     const url = `'${fields.Connector.replace(/'/g, "'\\''")}'`;
     console.log(`\nclaude mcp add --scope user --transport http sparky ${url} --header "Authorization: Bearer $API_TOKEN"\ncodex mcp add sparky --url ${url} --bearer-token-env-var SPARKY_MCP_TOKEN`);

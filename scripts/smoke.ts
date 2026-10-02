@@ -1,4 +1,9 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { join } from "node:path";
+import { Database } from "bun:sqlite";
+import { settings } from "../src/cli/envfile.js";
+import { pairingSchema } from "../src/pairing-schema.js";
+import { createPairingCode } from "../src/pairing.js";
 
 type Json = Record<string, unknown>;
 interface ToolResult {
@@ -109,6 +114,25 @@ await check("Commands reject missing token", async () => {
 await check("Commands accept API token", async () => {
   const body = await jsonResponse(await request("/api/commands", { headers: authorizedHeaders() }));
   assert(Array.isArray(body.commands), "Commands response is not an array.");
+});
+
+await check("Pairing redeems once and grants API access", async () => {
+  const db = new Database(join(settings().data, "sparky-mcp.db"));
+  let code: string;
+  try {
+    db.exec(pairingSchema);
+    code = createPairingCode(db).code;
+  } finally { db.close(); }
+  const redeem = () => request("/api/pair/redeem", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }),
+  });
+  const response = await redeem();
+  assert(response.headers.get("cache-control") === "no-store", "Pairing response must not be cached.");
+  const body = await jsonResponse(response);
+  assert(typeof body.apiToken === "string" && body.apiToken === apiToken, "Pairing token differs from API token.");
+  const commands = await jsonResponse(await request("/api/commands", { headers: authorizedHeaders(body.apiToken) }));
+  assert(Array.isArray(commands.commands), "Paired token cannot access commands.");
+  await jsonResponse(await redeem(), 401);
 });
 
 await check("MCP rejects missing token", async () => {
