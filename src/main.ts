@@ -1,5 +1,6 @@
 import { findCommand, type Command, type CommandFlags } from "./cli/commands.js";
 import { renderHelp, unknownCommand } from "./cli/help.js";
+import { highlight } from "./cli/ui.js";
 
 export type Route = { kind: "summary" } | { kind: "help"; command?: string } | { kind: "command"; command: Command; flags: CommandFlags; argument: string };
 
@@ -60,7 +61,7 @@ export async function main(args: string[], probes: MainProbes = {
 if (import.meta.main) {
   try { await main(process.argv.slice(2)); }
   catch (error) {
-    console.error(error instanceof Error ? error.message : "Command failed.");
+    console.error(highlight(error instanceof Error ? error.message : "Command failed.", { tty: Boolean(process.stderr.isTTY) }));
     process.exitCode = 1;
   }
 }

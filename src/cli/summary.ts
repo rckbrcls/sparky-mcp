@@ -8,7 +8,7 @@ import { health } from "./status.js";
 import { run } from "./process.js";
 import { parseFunnel } from "./funnel.js";
 import { version } from "./version.js";
-import { fieldsText, header, type UIOptions } from "./ui.js";
+import { color, fieldsText, header, highlight, type UIOptions } from "./ui.js";
 
 export interface SummaryState { initialized: boolean; service: string; healthy: boolean; url: string; funnel: boolean | null; syncedAt: string | null; now: number }
 export interface SummaryProbes {
@@ -80,7 +80,7 @@ export function summaryText(state: SummaryState, options: UIOptions = {}): strin
     "Public access": state.funnel === null ? "Unknown" : state.funnel ? "On" : "Off",
     "Last app sync": relativeTime(state.syncedAt, state.now),
   }, options));
-  lines.push("", `Next step: ${nextStep(state)}`);
+  lines.push("", `${color("Next step", 2, options)}  ${highlight(nextStep(state), options)}`);
   return lines.join("\n");
 }
 

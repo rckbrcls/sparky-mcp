@@ -11,8 +11,17 @@ function terminal(options: UIOptions = {}) {
 
 export function color(text: string, code: number | "accent", options: UIOptions = {}): string {
   const t = terminal(options);
-  const value = code === "accent" ? /^(truecolor|24bit)$/i.test(t.env.COLORTERM || "") ? "38;2;0;107;255" : "94" : code === 2 ? "2;90" : code;
+  const value = code === "accent" ? /^(truecolor|24bit)$/i.test(t.env.COLORTERM || "") ? "38;2;0;107;255" : "94" : code === 2 ? "2" : code;
   return t.color ? `\x1b[${value}m${text}\x1b[0m` : text;
+}
+
+const COMMAND_NAMES = "setup|init|start|stop|restart|status|logs|pair|connect|funnel|info|doctor|update|serve|help|version";
+const COMMAND_PATTERN = new RegExp(`\\bsparky-mcp(?: (?:${COMMAND_NAMES}))?(?: (?:--?[a-z][a-z-]*|<[a-z-]+>|on|off|claude-code|codex|claude-web|chatgpt))*(?![\\w-])`, "g");
+
+/** Marks command snippets such as `sparky-mcp help` with bold accent so they stand out from prose. Plain terminals are left untouched. */
+export function highlight(text: string, options: UIOptions = {}): string {
+  const t = terminal(options);
+  return t.color ? text.replace(COMMAND_PATTERN, (match) => `\x1b[1m${color(match, "accent", options)}`) : text;
 }
 
 export function symbol(value: "✓" | "!" | "✗" | "›" | "•", options: UIOptions = {}): string {
@@ -34,7 +43,7 @@ export function fieldsText(fields: Record<string, string>, options: UIOptions = 
 export function printFields(fields: Record<string, string>) { console.log(fieldsText(fields)); }
 export function header(version: string, options: UIOptions = {}): string { return color(`${terminal(options).unicode ? "▍" : "|"}Sparky MCP  v${version}`, "accent", options); }
 export function step(n: number, total: number, title: string) { console.log(`\n${color(`${n}/${total}`, "accent")} ${title}`); }
-export function hint(text: string) { console.log(color(`  ${text}`, 2)); }
+export function hint(text: string) { console.log(`  ${highlight(text)}`); }
 
 function section(check: Check): string {
   if (check.section) return check.section;
@@ -54,8 +63,8 @@ export function checksText(checks: Check[], compact = false, options: UIOptions 
     for (const check of members) {
       const mark = color(symbol({ PASS: "✓", WARN: "!", FAIL: "✗" }[check.state] as "✓" | "!" | "✗", options), { PASS: 32, WARN: 33, FAIL: 31 }[check.state], options);
       const detail = check.state === "PASS" || check.hint ? check.detail : { WARN: "Needs attention.", FAIL: "Check failed." }[check.state];
-      lines.push(`${mark} ${check.label}  ${detail}`);
-      if (check.state !== "PASS") lines.push(color(`  ${check.hint || check.detail}`, 2, options));
+      lines.push(`${mark} ${check.label}  ${highlight(detail, options)}`);
+      if (check.state !== "PASS") lines.push(`  ${highlight(check.hint || check.detail, options)}`);
     }
   }
   const count = (state: Check["state"]) => checks.filter((check) => check.state === state).length;
