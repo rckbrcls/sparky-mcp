@@ -1,0 +1,57 @@
+name: Release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - target: bun-linux-x64
+            asset: sparky-mcp-linux-x64
+            runner: ubuntu-latest
+          - target: bun-linux-arm64
+            asset: sparky-mcp-linux-arm64
+            runner: ubuntu-latest
+          - target: bun-darwin-x64
+            asset: sparky-mcp-darwin-x64
+            runner: macos-latest
+          - target: bun-darwin-arm64
+            asset: sparky-mcp-darwin-arm64
+            runner: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Compile binary
+        env:
+          TARGET: ${{ matrix.target }}
+          ASSET: ${{ matrix.asset }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          bun build --compile --no-compile-autoload-dotenv --no-compile-autoload-bunfig --target="$TARGET" --define "BUILD_VERSION=\"$version\"" src/main.ts --outfile "$ASSET"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+      - name: Publish release
+        working-directory: assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          sha256sum sparky-mcp-* > SHA256SUMS
+          gh release create "$GITHUB_REF_NAME" sparky-mcp-* SHA256SUMS --verify-tag --generate-notes

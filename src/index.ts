@@ -1,4 +1,3 @@
-import { serve } from "@hono/node-server";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { Hono } from "hono";
 import { api } from "./api.js";
@@ -26,6 +25,5 @@ app.all("/mcp", requireMcpAuth, async (c) => {
   return transport.handleRequest(c.req.raw);
 });
 
-serve({ fetch: app.fetch, port: config.port }, ({ port }) => {
-  console.log(`sparky-mcp listening on :${port} (public URL: ${config.publicUrl})`);
-});
+const server = Bun.serve({ port: config.port, fetch: app.fetch });
+console.log(`sparky-mcp listening on :${server.port} (public URL: ${config.publicUrl})`);

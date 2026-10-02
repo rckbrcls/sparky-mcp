@@ -19,41 +19,59 @@ Claude / ChatGPT / Claude Code / Codex
 
 The app owns the data. The server answers reads from the mirror and queues writes; the app applies commands in order and re-uploads the mirror. Changes queued while the app is closed are applied when it opens. Read results include `syncedAt` and `stale: true` when the mirror is older than 24 hours.
 
-> Step-by-step setup (Docker, Tailscale Funnel, app, and every client): [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md).
-
-## Run it
+## Install and run
 
 ```bash
-cp .env.example .env     # fill PUBLIC_URL, API_TOKEN, ADMIN_PASSWORD
-docker compose up -d --build
+curl -fsSL https://raw.githubusercontent.com/rckbrcls/sparky-mcp/main/install.sh | sh
+sparky-mcp init          # creates ~/.sparky-mcp with generated secrets
+sparky-mcp start         # installs and starts a user service
+sudo tailscale funnel --bg 8787
+sparky-mcp doctor        # checks everything and tells you what to fix
 ```
 
-Without Docker (Node >= 22.13):
+`sparky-mcp` is a single binary for Linux (x64/arm64) and macOS (Apple Silicon/Intel). It is both the server and the CLI. Full walkthrough, including a VPS or cloud VM: [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md).
 
-```bash
-npm install
-npm run dev               # or: npm run build && npm start
-```
+| Command | Purpose |
+| --- | --- |
+| `init` | Create the config and generate the API token and admin password. |
+| `start`, `stop`, `restart`, `status`, `logs` | Manage the background service. |
+| `info` | Show the connector URL and masked secrets (`--reveal`, `--copy token\|password`). |
+| `doctor` | Diagnose config, service, Tailscale, Funnel, and app sync. |
+| `update` | Install the latest release (checksum verified). |
+| `serve` | Run the server in the foreground. |
 
 ### Configuration
+
+`sparky-mcp init` writes `~/.sparky-mcp/config.env` (mode 0600). Set `SPARKY_MCP_HOME` to use another directory. Real environment variables override the file.
 
 | Variable | Purpose |
 | --- | --- |
 | `PUBLIC_URL` | Public HTTPS URL of the server, no trailing slash. Used in OAuth metadata. |
-| `API_TOKEN` | Bearer token for the Sparky app and local MCP clients. `openssl rand -hex 32` |
+| `API_TOKEN` | Bearer token for the Sparky app and local MCP clients. |
 | `ADMIN_PASSWORD` | Password on the consent page when you add the connector in Claude/ChatGPT. |
 | `USER_TIMEZONE` | Time zone reported by `get_current_time` (default: system). |
-| `PORT`, `DATA_DIR` | Optional (defaults: `8787`, `./data`). |
+| `PORT`, `DATA_DIR` | Optional (defaults: `8787`, `~/.sparky-mcp/data`). |
+
+### Develop
+
+Requires [Bun](https://bun.sh) 1.3+.
+
+```bash
+bun install
+bun run typecheck
+bun test
+bun run build            # compiles dist/sparky-mcp
+```
 
 ## Expose it with Tailscale
 
-Claude and ChatGPT call your server from their own cloud, so it needs a public HTTPS URL. With [Tailscale Funnel](https://tailscale.com/kb/1223/funnel) (HTTPS and MagicDNS enabled on your tailnet):
+Claude and ChatGPT call your server from their own cloud, so it needs a public HTTPS URL. [Tailscale Funnel](https://tailscale.com/kb/1223/funnel) provides one (enable HTTPS and MagicDNS on your tailnet):
 
 ```bash
-tailscale funnel --bg 8787
+sudo tailscale funnel --bg 8787
 ```
 
-Set `PUBLIC_URL` to the `https://<host>.<tailnet>.ts.net` address it prints. The Sparky app and local clients (Claude Code, Codex) can use the same URL, or the private tailnet address without Funnel.
+`sparky-mcp init` detects the `https://<host>.<tailnet>.ts.net` address and uses it as `PUBLIC_URL`. The Sparky app and local clients (Claude Code, Codex) use the same URL. Funnel makes `/mcp` and `/api` public: keep the generated secrets private.
 
 ## Connect a client
 

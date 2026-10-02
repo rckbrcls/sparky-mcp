@@ -2,7 +2,9 @@
 
 This guide takes you from a clean machine to Claude, ChatGPT, Claude Code, or Codex creating reminders in your Sparky app. Everything runs on hardware you own or rent; nothing is hosted for you.
 
-Pick where the server runs:
+`sparky-mcp` is a single binary. It is the server and the command line tool that sets it up, runs it as a background service, and checks that everything works.
+
+Pick where it runs:
 
 - **A. Local machine**: a computer you sit at (your Mac, a home server, a homelab box).
 - **B. VPS / cloud VM**: a remote Linux machine (EC2, DigitalOcean, Hetzner, ...) that you reach over SSH.
@@ -11,79 +13,57 @@ Both paths expose the server through [Tailscale Funnel](https://tailscale.com/kb
 
 You need:
 
-- Docker and Docker Compose on the machine that runs the server.
+- Linux (x64 or arm64, glibc: Ubuntu, Debian, Fedora, ...) or macOS (Apple Silicon or Intel).
 - A free [Tailscale](https://tailscale.com) account. In the admin console, enable MagicDNS and HTTPS certificates (DNS page) and allow Funnel for your tailnet.
 - The Sparky app (iOS 26 / macOS 26) with Settings > Advanced > Remote MCP.
 
-## 1. Prepare the machine
+## 1. Install
 
-**A. Local machine.** Install Docker and [Tailscale](https://tailscale.com/download), sign in to Tailscale, and open a terminal.
-
-**B. VPS / cloud VM.** SSH in, then install Docker and Tailscale:
+**B. VPS only**: SSH in first and install Tailscale:
 
 ```bash
-curl -fsSL https://get.docker.com | sh
 curl -fsSL https://tailscale.com/install.sh | sh
 sudo tailscale up
 ```
 
-Open the login link that `tailscale up` prints. You do **not** need to open ports 80, 443, or 8787 in the firewall or security group; Funnel connects outward. Keep only SSH (22) open, restricted to your IP if you can.
+Open the login link that `tailscale up` prints. You do **not** need to open ports 80, 443, or 8787 in a firewall or security group; Funnel connects outward. Keep only SSH (22) open, restricted to your IP if you can.
 
-Find your Tailscale address; you need it in the next step:
+**A. Local machine**: install and sign in to [Tailscale](https://tailscale.com/download).
 
-```bash
-tailscale status --json | grep -m1 '"DNSName"'
-```
-
-It looks like `my-host.tail1234.ts.net.` (drop the trailing dot).
-
-## 2. Download and configure
+Then, on the machine that will run the server:
 
 ```bash
-git clone https://github.com/rckbrcls/sparky-mcp.git
-cd sparky-mcp
+curl -fsSL https://raw.githubusercontent.com/rckbrcls/sparky-mcp/main/install.sh | sh
 ```
 
-Create `.env` with generated secrets, so you never type or paste them. Replace the `PUBLIC_URL` value with your address:
+The script downloads the binary for your system from the latest GitHub release, verifies its SHA-256 checksum, and installs it to `~/.local/bin/sparky-mcp`. It never uses `sudo`. If `~/.local/bin` is not on your `PATH`, it tells you. You can read the script before running it.
+
+## 2. Set up
 
 ```bash
-umask 077
-cat > .env <<EOF
-PUBLIC_URL=https://my-host.tail1234.ts.net
-API_TOKEN=$(openssl rand -hex 32)
-ADMIN_PASSWORD=$(openssl rand -base64 18 | tr -d '=+/')
-USER_TIMEZONE=America/Sao_Paulo
-EOF
+sparky-mcp init
 ```
 
-| Variable | Purpose |
+This creates `~/.sparky-mcp/` with:
+
+| Path | Contents |
 | --- | --- |
-| `PUBLIC_URL` | Your Funnel address, no trailing slash. Must match exactly or OAuth fails. |
-| `API_TOKEN` | Secret used by the Sparky app, Claude Code, and Codex. |
-| `ADMIN_PASSWORD` | Asked on the consent page when you add the Claude/ChatGPT connector. |
-| `USER_TIMEZONE` | Your IANA zone. Used to resolve "tomorrow at 9". |
+| `config.env` | Settings and secrets, readable only by you (mode 0600). |
+| `data/` | The SQLite database (mirror, command queue, OAuth registrations). |
+| `logs/` | Service log (macOS). |
 
-The file is gitignored and readable only by you. Read a value back whenever you need it:
+`init` generates a random `API_TOKEN` (for the Sparky app, Claude Code, and Codex) and `ADMIN_PASSWORD` (asked on the consent page when you add the Claude/ChatGPT connector), and never prints them. It detects your Tailscale address for `PUBLIC_URL` automatically; if Tailscale is not signed in it asks, or you can pass `--public-url https://my-host.tail1234.ts.net`.
 
-```bash
-grep ^API_TOKEN= ~/sparky-mcp/.env
-grep ^ADMIN_PASSWORD= ~/sparky-mcp/.env
-```
-
-On a VPS, run these from your own computer as `ssh my-vps 'grep ^API_TOKEN= ~/sparky-mcp/.env'`. Do not paste these values into chats, tickets, or screenshots.
+Useful flags: `--timezone America/Sao_Paulo`, `--port 8787`, `--force` (replace an existing config).
 
 ## 3. Run it and expose it
 
 ```bash
-docker compose up -d --build
-docker compose logs --tail 5
+sparky-mcp start
+sparky-mcp status
 ```
 
-You should see `sparky-mcp listening on :8787`. The container publishes only on `127.0.0.1:8787`; nothing is reachable from outside yet. Check it locally:
-
-```bash
-curl -i http://127.0.0.1:8787/api/commands    # 401 without a token
-```
+`start` installs a user service (systemd on Linux, a LaunchAgent on macOS), starts it, and keeps it running across crashes and reboots. On Linux, run `loginctl enable-linger $USER` once so the service keeps running when you are logged out (`sparky-mcp doctor` tells you if it is needed).
 
 Now turn on Funnel:
 
@@ -93,9 +73,15 @@ sudo tailscale funnel --bg 8787
 
 Without `sudo` this fails on Linux unless you set an operator once with `sudo tailscale set --operator=$USER`. If Funnel is not yet enabled for your tailnet, Tailscale prints a link to approve it; open it and run the command again.
 
-> **Funnel puts `/mcp` and `/api` on the public internet.** Anyone who finds the URL can reach the login of your server. Make sure `API_TOKEN` is long and random and `ADMIN_PASSWORD` is strong and unique, which the `.env` above gives you. Turn Funnel off when you do not need it.
+> **Funnel puts `/mcp` and `/api` on the public internet.** Anyone who finds the URL can reach the login of your server. `init` generates a long random token and a strong password, so keep them private and turn Funnel off when you do not need it.
 
-Verify from outside your network (for example your phone on mobile data): `https://my-host.tail1234.ts.net/api/commands` should answer `401`.
+Check everything:
+
+```bash
+sparky-mcp doctor
+```
+
+`doctor` verifies the config, service, local and public health, database, Tailscale, Funnel, and the last time the app synced, and prints the exact fix for anything wrong. A `WARN` for "Funnel exposes this server publicly" is expected and intentional.
 
 The address is permanent for the machine. Use the HTTPS address everywhere, including the Sparky app; iOS blocks plain `http://`.
 
@@ -109,21 +95,38 @@ If you only need the app, Claude Code, and Codex on your own devices (no Claude/
 
 ## 4. Connect the Sparky app
 
+```bash
+sparky-mcp info
+```
+
+shows your connector URL and masked secrets. Reveal or copy one when you need it:
+
+```bash
+sparky-mcp info --reveal            # print secrets in full
+sparky-mcp info --copy token        # put the API token on the clipboard
+```
+
 1. Open Sparky > Settings > Advanced > Remote MCP.
-2. Enter the Server URL (your `PUBLIC_URL`) and the API token. The token lives in the server's `.env`; read it with the `grep` command from step 2 and paste it straight into the app (on a VPS, run that command over SSH from the computer you are using).
+2. Enter the Server URL (your `PUBLIC_URL`) and the API token.
 3. Turn the toggle on and tap Test connection, then Sync now.
+
+On a VPS, read the token over SSH from the computer you are using, and paste it straight into the app. Do not paste it into chats or tickets:
+
+```bash
+ssh my-vps 'sparky-mcp info --reveal'
+```
 
 Sync behavior: macOS keeps syncing in the background; iOS syncs only while the app is active. Commands queued while the app is closed are applied the next time it syncs.
 
 ## 5. Connect an AI client
 
-Replace `PUBLIC_URL` with your address.
+`sparky-mcp info` prints the connector URL and the matching commands. Replace `PUBLIC_URL` with your address.
 
-**Claude Code and Codex** run on your own computer, so they need the token from the server. Read it into a shell variable without printing it (for a VPS, wrap the `grep` in `ssh my-vps '...'`):
+**Claude Code and Codex** run on your own computer, so they need the token from the server. Read it into a shell variable without printing it:
 
 ```bash
-API_TOKEN=$(grep ^API_TOKEN= ~/sparky-mcp/.env | cut -d= -f2)        # server is this machine
-API_TOKEN=$(ssh my-vps 'grep ^API_TOKEN= ~/sparky-mcp/.env' | cut -d= -f2)   # server is a VPS
+API_TOKEN=$(sed -n 's/^API_TOKEN="\(.*\)"$/\1/p' ~/.sparky-mcp/config.env)                              # server is this machine
+API_TOKEN=$(ssh my-vps "sed -n 's/^API_TOKEN=\"\(.*\)\"\$/\1/p' ~/.sparky-mcp/config.env")              # server is a VPS
 ```
 
 Claude Code (remove an older `sparky` entry first, if any, then restart the session so the tools load):
@@ -141,50 +144,74 @@ export SPARKY_MCP_TOKEN=$API_TOKEN
 codex mcp add sparky --url PUBLIC_URL/mcp --bearer-token-env-var SPARKY_MCP_TOKEN
 ```
 
-**Claude (web, desktop, mobile)**: Settings > Connectors > Add custom connector > URL `PUBLIC_URL/mcp`. Claude opens the consent page; enter `ADMIN_PASSWORD`. Requires Funnel (step 3).
+**Claude (web, desktop, mobile)**: Settings > Connectors > Add custom connector > URL `PUBLIC_URL/mcp`. Claude opens the consent page; enter the `ADMIN_PASSWORD` (`sparky-mcp info --copy password`). Requires Funnel (step 3).
 
 **ChatGPT**: enable developer mode, add a connector with `PUBLIC_URL/mcp`, and complete the same consent flow. Requires Funnel.
 
-Product UIs and plan requirements change; check each vendor's current remote MCP documentation. The OAuth connectors (Claude, ChatGPT) are implemented but have not been exercised end to end yet; the bearer-token path (app, Claude Code) has.
+Product UIs and plan requirements change; check each vendor's current remote MCP documentation.
 
 Try it: ask "list my minds", then "remind me to call the dentist tomorrow at 9". The reply contains a `commandId`; the app applies it within about 10 seconds. `get_command_status` shows `done`, `failed`, or `conflict`.
 
 ## 6. Operate it
 
-**Update**
+| Task | Command |
+| --- | --- |
+| See service state and health | `sparky-mcp status` |
+| Read logs | `sparky-mcp logs` (add `-f` to follow) |
+| Restart or stop | `sparky-mcp restart`, `sparky-mcp stop` |
+| Check for a new version | `sparky-mcp update --check` |
+| Install the latest version | `sparky-mcp update` (verifies the checksum, replaces the binary, restarts the service) |
+| Diagnose problems | `sparky-mcp doctor` |
+
+**Back up** the data. Stop the service first so the SQLite files are consistent:
 
 ```bash
-git pull
-docker compose up -d --build
+sparky-mcp stop
+tar czf sparky-mcp-backup.tgz -C ~ .sparky-mcp
+sparky-mcp start
 ```
 
-**Back up** the SQLite data (pending commands and OAuth registrations):
+The notes and reminders themselves live in the app; the server only holds a mirror and a queue.
+
+**Rotate secrets**: re-run `init` with `--force` and the same URL, restart, then update the token in the Sparky app and re-register your clients (step 5). Existing connector sessions in Claude/ChatGPT must be re-authorized.
 
 ```bash
-docker run --rm -v sparky-mcp_sparky-mcp-data:/data -v "$PWD":/backup node:24-slim \
-  tar czf /backup/sparky-mcp-data.tgz -C /data .
+sparky-mcp init --force --public-url PUBLIC_URL
+sparky-mcp restart
 ```
 
-The volume name is the folder name plus `_sparky-mcp-data` (`docker volume ls` shows it). The notes and reminders themselves live in the app; the server only holds a mirror and a queue.
+**Move to another machine**: stop the service, copy `~/.sparky-mcp/` to the new machine (it keeps your secrets and database), install the binary there, run `sparky-mcp start`, and point Funnel at it.
 
-**Rotate secrets**: edit `API_TOKEN` or `ADMIN_PASSWORD` in `.env` (new value from `openssl rand -hex 32`), run `docker compose up -d`, then update the token in the Sparky app and re-register your clients (step 5).
+## Migrating from a Docker install
 
-**Stop sharing publicly**: `sudo tailscale funnel --https=443 off`.
+Older versions of this project ran in Docker. To switch without changing your token, password, or connector:
+
+```bash
+sparky-mcp init --import-env ~/sparky-mcp/.env     # keeps the same secrets
+docker compose -f ~/sparky-mcp/docker-compose.yml down
+sparky-mcp start
+```
+
+The server then starts with an empty database; open Sparky and tap Sync now to refill the mirror. Queued commands from the old container are not carried over.
 
 ## Troubleshooting
 
 | Symptom | Check |
 | --- | --- |
-| Server exits at startup | `docker compose logs`; a required variable (`PUBLIC_URL`, `API_TOKEN`, `ADMIN_PASSWORD`) is missing. |
-| App says unauthorized | The token in the app differs from `API_TOKEN`. The app stops syncing after a 401; re-save the token. |
+| `sparky-mcp: command not found` | Add `~/.local/bin` to your `PATH`. |
+| Service will not start | `sparky-mcp logs`; a required setting is missing or the port is taken. Run `sparky-mcp doctor`. |
+| App says unauthorized | The token in the app differs from the server's. The app stops syncing after a 401; re-save the token. |
 | Commands stay `pending` | The app is closed, sync is disabled, or (iOS) the app is in the background. Open the app and tap Sync now. |
 | Command ends in `conflict` | The Memory changed in the app after the AI read it. Ask the client to re-read and retry. |
 | Reads look old (`stale: true`) | The app has not pushed a mirror in 24 hours. Open the app. |
-| Claude/ChatGPT cannot connect | Funnel is off, `PUBLIC_URL` does not match the Funnel address, or the machine is asleep. |
+| Claude/ChatGPT cannot connect | Funnel is off, `PUBLIC_URL` does not match the Funnel address, or the machine is asleep. `sparky-mcp doctor` checks all three. |
 | Claude Code does not show the tools | Register with `--scope user` and restart the session. |
+| Linux service stops when you log out | Run `loginctl enable-linger $USER`. |
 
 ## Security
 
-- Anyone with `API_TOKEN` can read and change your Minds and Memories. Treat it like a password and never commit `.env`.
-- With Funnel, `/mcp` is on the public internet. Use a long random token and a strong `ADMIN_PASSWORD`; the consent page locks out for 15 minutes after 5 failed attempts.
+- Anyone with the API token can read and change your Minds and Memories. Treat it like a password.
+- `config.env` is created with mode 0600; `sparky-mcp doctor` warns if that changes. The installer and `update` verify SHA-256 checksums before replacing the binary.
+- With Funnel, `/mcp` is on the public internet. The consent page locks out for 15 minutes after 5 failed attempts.
 - OAuth tokens are hashed at rest; access tokens last 1 hour and refresh tokens 90 days.
+- Alpine Linux (musl) is not supported by the release binaries.

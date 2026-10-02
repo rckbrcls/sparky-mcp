@@ -1,11 +1,11 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { Database } from "bun:sqlite";
 import { config } from "./config.js";
 
 mkdirSync(config.dataDir, { recursive: true });
 
-export const db = new DatabaseSync(join(config.dataDir, "sparky-mcp.db"));
+export const db = new Database(join(config.dataDir, "sparky-mcp.db"));
 
 db.exec(`
   PRAGMA journal_mode = WAL;
