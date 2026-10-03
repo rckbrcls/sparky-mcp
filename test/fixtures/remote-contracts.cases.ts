@@ -157,6 +157,22 @@ test("queries cover case-folding, combined filters, inclusive date boundaries an
   expect(listMemories({ query: "missing", limit: 50 }, state).memories).toEqual([]);
   expect(listMemories({ status: "completed", pinned: false, limit: 50 }, state).memories).toHaveLength(1);
   expect(listMemories({ dueFrom: "2026-10-02T12:00:00.001Z", limit: 50 }, state).memories).toEqual([]);
+  const olderId = "10000000-0000-4000-8000-000000000001";
+  const newerLowId = "20000000-0000-4000-8000-000000000002";
+  const newerHighId = "30000000-0000-4000-8000-000000000003";
+  const olderAt = "2026-10-01T12:00:00.000Z";
+  const newerAt = "2026-10-03T12:00:00.000Z";
+  const recent = { syncedAt: date, minds: [mind()], memories: [
+    memory({ id: olderId, title: "Older", updatedAt: olderAt }),
+    memory({ id: newerHighId, title: "Newer high", updatedAt: newerAt }),
+    memory({ id: newerLowId, title: "Newer low", updatedAt: newerAt }),
+  ] };
+  expect(listMemories({ limit: 1 }, recent).memories.map(m => m.id)).toEqual([newerLowId]);
+  expect(listMemories({ limit: 3 }, recent).memories.map(m => m.id)).toEqual([newerLowId, newerHighId, olderId]);
+  expect(listMemories({ updatedFrom: newerAt, updatedTo: newerAt, limit: 50 }, recent).memories.map(m => m.id)).toEqual([newerLowId, newerHighId]);
+  expect(listMemories({ updatedFrom: olderAt, updatedTo: olderAt, limit: 50 }, recent).memories.map(m => m.id)).toEqual([olderId]);
+  expect(listMemories({ updatedFrom: "2026-10-03T12:00:00.001Z", limit: 50 }, recent).memories).toEqual([]);
+  expect(listMemories({ updatedTo: "2026-10-01T11:59:59.999Z", limit: 50 }, recent).memories).toEqual([]);
 });
 
 test("mirror full replacement, empty/stale metadata, malformed mirror atomicity and hierarchy order", () => {

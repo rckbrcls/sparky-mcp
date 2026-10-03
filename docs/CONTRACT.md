@@ -159,7 +159,7 @@ Read (answered from the mirror, no queue):
 | --- | --- |
 | `get_current_time` | Server time and the user's time zone. |
 | `list_minds` | Mind tree: id, name, color, icon, parentId. |
-| `list_memories` | Filters: `mind` (name or id), `status`, `pinned`, `dueFrom`, `dueTo`, `query` (title/note/checklist text), `limit` (default 50). Returns summaries. |
+| `list_memories` | Filters: `mind` (name or id), `status`, `pinned`, `dueFrom`, `dueTo`, `updatedFrom`, `updatedTo` (inclusive `updatedAt` range), `query` (title/note/checklist text), `limit` (default 50). Summaries are newest `updatedAt` first; equal timestamps break by id ascending. |
 | `get_memory` | Full Memory by id. |
 | `get_command_status` | State and result of a command by id. |
 

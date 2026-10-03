@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { config } from "./config.js";
+import { version } from "./cli/version.js";
 import { enqueue, getCommand } from "./commands.js";
 import { findMind, getMirror, listMemories, mindTree, mirrorMetadata, type MirrorState } from "./mirror.js";
 import {
@@ -36,7 +37,7 @@ function validateMindId(id: string | null | undefined, mirror: MirrorState) {
 }
 
 export function createMcpServer(): McpServer {
-  const server = new McpServer({ name: "sparky", version: "0.1.0" });
+  const server = new McpServer({ name: "sparky", version });
 
   server.registerTool("get_current_time", {
     description: "Returns the current date/time and the user's time zone. Call before building any fireDate or resolving relative dates.",
@@ -57,7 +58,7 @@ export function createMcpServer(): McpServer {
   }));
 
   server.registerTool("list_memories", {
-    description: "Returns memory summaries from the mirror. Filter by Mind name or ID, status, pinned state, inclusive due date range, or case-insensitive title/note/checklist text. Default limit is 50. Includes syncedAt and stale=true when applicable.",
+    description: "Returns memory summaries from the mirror, newest updatedAt first. Filter by Mind name or ID, status, pinned state, inclusive due date range, inclusive updatedAt range, or case-insensitive title/note/checklist text. Use updatedFrom and updatedTo for what changed in a period; call get_current_time first for relative dates and send ISO 8601 with a UTC offset. Default limit is 50. Includes syncedAt and stale=true when applicable.",
     inputSchema: listMemoriesInputSchema,
   }, async (input) => respond(() => listMemories(input)));
 

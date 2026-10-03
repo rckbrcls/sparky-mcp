@@ -1,6 +1,6 @@
 {
   "name": "sparky-mcp",
-  "version": "0.1.0",
+  "version": "0.1.6",
   "description": "Self-hosted MCP server and CLI for the Sparky app",
   "private": true,
   "type": "module",

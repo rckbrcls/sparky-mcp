@@ -38,10 +38,13 @@ export function listMemories(input: ListMemoriesInput, mirror = getMirror()) {
     if (input.pinned !== undefined && memory.isPinned !== input.pinned) return false;
     if (input.dueFrom !== undefined && (memory.dueDate === null || Date.parse(memory.dueDate) < Date.parse(input.dueFrom))) return false;
     if (input.dueTo !== undefined && (memory.dueDate === null || Date.parse(memory.dueDate) > Date.parse(input.dueTo))) return false;
+    if (input.updatedFrom !== undefined && Date.parse(memory.updatedAt) < Date.parse(input.updatedFrom)) return false;
+    if (input.updatedTo !== undefined && Date.parse(memory.updatedAt) > Date.parse(input.updatedTo)) return false;
     if (query && ![memory.title, memory.note ?? "", ...memory.checklist.flatMap((item) => [item.title, item.detail])]
       .some((value) => value.toLowerCase().includes(query))) return false;
     return true;
-  }).slice(0, input.limit).map(({ id, title, status, isPinned, priority, dueDate, mindId, updatedAt }) => ({
+  }).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    .slice(0, input.limit).map(({ id, title, status, isPinned, priority, dueDate, mindId, updatedAt }) => ({
     id, title, status, isPinned, priority, dueDate, mindId, updatedAt,
   }));
   return { ...mirrorMetadata(mirror), memories };

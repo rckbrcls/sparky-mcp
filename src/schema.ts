@@ -143,6 +143,8 @@ export const listMemoriesInputShape = {
   pinned: z.boolean().optional(),
   dueFrom: inputDateSchema.optional().describe("Inclusive due date lower bound; ISO 8601 with UTC offset."),
   dueTo: inputDateSchema.optional().describe("Inclusive due date upper bound; ISO 8601 with UTC offset."),
+  updatedFrom: inputDateSchema.optional().describe("Inclusive updatedAt lower bound; ISO 8601 with UTC offset. Call get_current_time first for relative dates."),
+  updatedTo: inputDateSchema.optional().describe("Inclusive updatedAt upper bound; ISO 8601 with UTC offset. Call get_current_time first for relative dates."),
   query: z.string().optional().describe("Case-insensitive search in title, note, and checklist text."),
   limit: z.number().int().positive().default(50),
 };
