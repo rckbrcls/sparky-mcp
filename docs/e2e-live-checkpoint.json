@@ -1,0 +1,563 @@
+{
+  "prefix": "E2E-20261002-neq7t0",
+  "cases": [
+    {
+      "label": "Mind root create/read",
+      "status": "passed",
+      "commandId": "2bd1e772-aa73-40d8-ad6c-46e63b880ca1",
+      "observed": {
+        "name": "E2E-20261002-neq7t0 Root",
+        "id": "701bf635-87a9-41bb-9ce9-802fbfa791bd"
+      }
+    },
+    {
+      "label": "Mind child create",
+      "status": "terminal-matched",
+      "expected": "done",
+      "observed": {
+        "id": "c7aba7bb-85dd-4cfa-bf46-347efcc0e4e1",
+        "type": "mind.create",
+        "targetId": null,
+        "baseVersion": null,
+        "payload": {
+          "name": "E2E-20261002-neq7t0 Child",
+          "colorHex": null,
+          "iconName": null,
+          "sortOrder": 0,
+          "parentId": "701bf635-87a9-41bb-9ce9-802fbfa791bd"
+        },
+        "createdAt": "2026-10-02T23:40:45.215Z",
+        "status": "done",
+        "result": {
+          "mind": {
+            "colorHex": null,
+            "iconName": null,
+            "id": "552b7c03-50ca-4a47-8fcb-3e7bf7a72168",
+            "isDefault": false,
+            "name": "E2E-20261002-neq7t0 Child",
+            "parentId": "701bf635-87a9-41bb-9ce9-802fbfa791bd",
+            "sortOrder": 0,
+            "updatedAt": "2026-10-02T23:40:50.444Z"
+          }
+        },
+        "error": null,
+        "claimedAt": "2026-10-02T23:40:50.378Z",
+        "finishedAt": "2026-10-02T23:40:50.581Z"
+      },
+      "durationMs": 17510
+    },
+    {
+      "label": "Mind grandchild create",
+      "status": "terminal-matched",
+      "expected": "done",
+      "observed": {
+        "id": "8ae777aa-ca61-481b-a54c-438afce7aeda",
+        "type": "mind.create",
+        "targetId": null,
+        "baseVersion": null,
+        "payload": {
+          "name": "E2E-20261002-neq7t0 Grandchild",
+          "colorHex": null,
+          "iconName": null,
+          "sortOrder": 0,
+          "parentId": "552b7c03-50ca-4a47-8fcb-3e7bf7a72168"
+        },
+        "createdAt": "2026-10-02T23:44:05.803Z",
+        "status": "done",
+        "result": {
+          "mind": {
+            "colorHex": null,
+            "iconName": null,
+            "id": "d383d0be-57f1-410f-88f9-880ac8741fa0",
+            "isDefault": false,
+            "name": "E2E-20261002-neq7t0 Grandchild",
+            "parentId": "552b7c03-50ca-4a47-8fcb-3e7bf7a72168",
+            "sortOrder": 0,
+            "updatedAt": "2026-10-02T23:44:13.249Z"
+          }
+        },
+        "error": null,
+        "claimedAt": "2026-10-02T23:44:13.233Z",
+        "finishedAt": "2026-10-02T23:44:13.297Z"
+      },
+      "durationMs": 16250
+    },
+    {
+      "label": "Read child and grandchild hierarchy",
+      "status": "passed",
+      "observed": {
+        "data": {
+          "syncedAt": "2026-10-02T23:44:13.298Z",
+          "minds": [
+            {
+              "id": "701bf635-87a9-41bb-9ce9-802fbfa791bd",
+              "name": "E2E-20261002-neq7t0 Root",
+              "color": "#F97316",
+              "icon": "folder",
+              "parentId": null,
+              "children": [
+                {
+                  "id": "552b7c03-50ca-4a47-8fcb-3e7bf7a72168",
+                  "name": "E2E-20261002-neq7t0 Child",
+                  "color": null,
+                  "icon": null,
+                  "parentId": "701bf635-87a9-41bb-9ce9-802fbfa791bd",
+                  "children": [
+                    {
+                      "id": "d383d0be-57f1-410f-88f9-880ac8741fa0",
+                      "name": "E2E-20261002-neq7t0 Grandchild",
+                      "color": null,
+                      "icon": null,
+                      "parentId": "552b7c03-50ca-4a47-8fcb-3e7bf7a72168",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "isError": false
+      },
+      "durationMs": 3578
+    },
+    {
+      "label": "Mind rename color icon order",
+      "status": "terminal-matched",
+      "expected": "done",
+      "observed": {
+        "id": "c4f2fe4e-8fa4-4e04-b6d5-5f030ec398b8",
+        "type": "mind.update",
+        "targetId": "552b7c03-50ca-4a47-8fcb-3e7bf7a72168",
+        "baseVersion": "2026-10-02T23:40:50.444Z",
+        "payload": {
+          "patch": {
+            "name": "E2E-20261002-neq7t0 Child Edited",
+            "colorHex": "#22C55E",
+            "iconName": "star",
+            "sortOrder": 7
+          }
+        },
+        "createdAt": "2026-10-02T23:44:26.695Z",
+        "status": "done",
+        "result": {
+          "mind": {
+            "colorHex": "#22C55E",
+            "iconName": "star",
+            "id": "552b7c03-50ca-4a47-8fcb-3e7bf7a72168",
+            "isDefault": false,
+            "name": "E2E-20261002-neq7t0 Child Edited",
+            "parentId": "701bf635-87a9-41bb-9ce9-802fbfa791bd",
+            "sortOrder": 7,
+            "updatedAt": "2026-10-02T23:44:34.172Z"
+          }
+        },
+        "error": null,
+        "claimedAt": "2026-10-02T23:44:34.123Z",
+        "finishedAt": "2026-10-02T23:44:34.431Z"
+      },
+      "durationMs": 18288
+    },
+    {
+      "label": "Mind updated fields reflected",
+      "status": "passed",
+      "observed": {
+        "data": {
+          "syncedAt": "2026-10-02T23:44:34.853Z",
+          "minds": [
+            {
+              "id": "701bf635-87a9-41bb-9ce9-802fbfa791bd",
+              "name": "E2E-20261002-neq7t0 Root",
+              "color": "#F97316",
+              "icon": "folder",
+              "parentId": null,
+              "children": [
+                {
+                  "id": "552b7c03-50ca-4a47-8fcb-3e7bf7a72168",
+                  "name": "E2E-20261002-neq7t0 Child Edited",
+                  "color": "#22C55E",
+                  "icon": "star",
+                  "parentId": "701bf635-87a9-41bb-9ce9-802fbfa791bd",
+                  "children": [
+                    {
+                      "id": "d383d0be-57f1-410f-88f9-880ac8741fa0",
+                      "name": "E2E-20261002-neq7t0 Grandchild",
+                      "color": null,
+                      "icon": null,
+                      "parentId": "552b7c03-50ca-4a47-8fcb-3e7bf7a72168",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "isError": false
+      },
+      "durationMs": 6821
+    },
+    {
+      "label": "Mind reject descendant cycle",
+      "status": "terminal-matched",
+      "expected": "failed",
+      "observed": {
+        "id": "cc3c068c-7cec-42f1-b7f3-ae26c6476d3c",
+        "type": "mind.update",
+        "targetId": "701bf635-87a9-41bb-9ce9-802fbfa791bd",
+        "baseVersion": "2026-10-02T23:39:56.653Z",
+        "payload": {
+          "patch": {
+            "parentId": "d383d0be-57f1-410f-88f9-880ac8741fa0"
+          }
+        },
+        "createdAt": "2026-10-02T23:45:34.751Z",
+        "status": "failed",
+        "result": {},
+        "error": "Mind parent would create a cycle",
+        "claimedAt": "2026-10-02T23:45:39.763Z",
+        "finishedAt": "2026-10-02T23:45:39.892Z"
+      },
+      "durationMs": 17570
+    },
+    {
+      "label": "Mind detach grandchild",
+      "status": "terminal-matched",
+      "expected": "done",
+      "observed": {
+        "id": "3306ec9b-c22e-4b67-a298-ce75927f6acd",
+        "type": "mind.update",
+        "targetId": "d383d0be-57f1-410f-88f9-880ac8741fa0",
+        "baseVersion": "2026-10-02T23:44:13.249Z",
+        "payload": {
+          "patch": {
+            "parentId": null
+          }
+        },
+        "createdAt": "2026-10-02T23:45:50.906Z",
+        "status": "done",
+        "result": {
+          "mind": {
+            "colorHex": null,
+            "iconName": null,
+            "id": "d383d0be-57f1-410f-88f9-880ac8741fa0",
+            "isDefault": false,
+            "name": "E2E-20261002-neq7t0 Grandchild",
+            "parentId": null,
+            "sortOrder": 0,
+            "updatedAt": "2026-10-02T23:46:01.577Z"
+          }
+        },
+        "error": null,
+        "claimedAt": "2026-10-02T23:46:01.574Z",
+        "finishedAt": "2026-10-02T23:46:01.628Z"
+      },
+      "durationMs": 16537
+    },
+    {
+      "label": "Mind detached reflected",
+      "status": "passed",
+      "observed": {
+        "data": {
+          "syncedAt": "2026-10-02T23:46:01.613Z",
+          "minds": [
+            {
+              "id": "d383d0be-57f1-410f-88f9-880ac8741fa0",
+              "name": "E2E-20261002-neq7t0 Grandchild",
+              "color": null,
+              "icon": null,
+              "parentId": null,
+              "children": []
+            },
+            {
+              "id": "701bf635-87a9-41bb-9ce9-802fbfa791bd",
+              "name": "E2E-20261002-neq7t0 Root",
+              "color": "#F97316",
+              "icon": "folder",
+              "parentId": null,
+              "children": [
+                {
+                  "id": "552b7c03-50ca-4a47-8fcb-3e7bf7a72168",
+                  "name": "E2E-20261002-neq7t0 Child Edited",
+                  "color": "#22C55E",
+                  "icon": "star",
+                  "parentId": "701bf635-87a9-41bb-9ce9-802fbfa791bd",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        "isError": false
+      },
+      "durationMs": 4555
+    },
+    {
+      "label": "Mind reparent grandchild",
+      "status": "terminal-matched",
+      "expected": "done",
+      "observed": {
+        "id": "fdad1a04-82f6-428c-b710-b446857d9557",
+        "type": "mind.update",
+        "targetId": "d383d0be-57f1-410f-88f9-880ac8741fa0",
+        "baseVersion": "2026-10-02T23:46:01.577Z",
+        "payload": {
+          "patch": {
+            "parentId": "552b7c03-50ca-4a47-8fcb-3e7bf7a72168"
+          }
+        },
+        "createdAt": "2026-10-02T23:46:47.289Z",
+        "status": "done",
+        "result": {
+          "mind": {
+            "colorHex": null,
+            "iconName": null,
+            "id": "d383d0be-57f1-410f-88f9-880ac8741fa0",
+            "isDefault": false,
+            "name": "E2E-20261002-neq7t0 Grandchild",
+            "parentId": "552b7c03-50ca-4a47-8fcb-3e7bf7a72168",
+            "sortOrder": 0,
+            "updatedAt": "2026-10-02T23:46:53.670Z"
+          }
+        },
+        "error": null,
+        "claimedAt": "2026-10-02T23:46:53.672Z",
+        "finishedAt": "2026-10-02T23:46:53.724Z"
+      },
+      "durationMs": 18161
+    },
+    {
+      "label": "Mind reparent reflected",
+      "status": "passed",
+      "observed": {
+        "data": {
+          "syncedAt": "2026-10-02T23:46:53.709Z",
+          "minds": [
+            {
+              "id": "701bf635-87a9-41bb-9ce9-802fbfa791bd",
+              "name": "E2E-20261002-neq7t0 Root",
+              "color": "#F97316",
+              "icon": "folder",
+              "parentId": null,
+              "children": [
+                {
+                  "id": "552b7c03-50ca-4a47-8fcb-3e7bf7a72168",
+                  "name": "E2E-20261002-neq7t0 Child Edited",
+                  "color": "#22C55E",
+                  "icon": "star",
+                  "parentId": "701bf635-87a9-41bb-9ce9-802fbfa791bd",
+                  "children": [
+                    {
+                      "id": "d383d0be-57f1-410f-88f9-880ac8741fa0",
+                      "name": "E2E-20261002-neq7t0 Grandchild",
+                      "color": null,
+                      "icon": null,
+                      "parentId": "552b7c03-50ca-4a47-8fcb-3e7bf7a72168",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "isError": false
+      },
+      "durationMs": 3695
+    },
+    {
+      "label": "Memory minimal create",
+      "status": "terminal-matched",
+      "expected": "done",
+      "observed": {
+        "id": "0b9f2897-5687-4eef-8d91-ffe7aefd6d6e",
+        "type": "memory.create",
+        "targetId": null,
+        "baseVersion": null,
+        "payload": {
+          "title": "E2E-20261002-neq7t0 Minimal",
+          "note": null,
+          "isPinned": false,
+          "priority": null,
+          "dueDate": null,
+          "mindId": null,
+          "autoCompleteOnChecklistCompletion": false,
+          "checklist": [],
+          "schedule": null,
+          "location": null,
+          "links": []
+        },
+        "createdAt": "2026-10-02T23:47:08.280Z",
+        "status": "done",
+        "result": {
+          "memory": {
+            "autoCompleteOnChecklistCompletion": false,
+            "checklist": [],
+            "completedAt": null,
+            "completedDates": [],
+            "createdAt": "2026-10-02T23:47:14.839Z",
+            "dueDate": null,
+            "id": "d303bcf9-4afa-4b8f-b652-f8b7ca0ada60",
+            "isPinned": false,
+            "links": [],
+            "location": null,
+            "mindId": null,
+            "note": null,
+            "priority": null,
+            "schedule": null,
+            "status": "active",
+            "title": "E2E-20261002-neq7t0 Minimal",
+            "updatedAt": "2026-10-02T23:47:14.845Z"
+          }
+        },
+        "error": null,
+        "claimedAt": "2026-10-02T23:47:14.793Z",
+        "finishedAt": "2026-10-02T23:47:15.067Z"
+      },
+      "durationMs": 18364
+    },
+    {
+      "label": "Memory defaults reflected",
+      "status": "passed",
+      "observed": {
+        "data": {
+          "syncedAt": "2026-10-02T23:47:15.095Z",
+          "memory": {
+            "id": "d303bcf9-4afa-4b8f-b652-f8b7ca0ada60",
+            "title": "E2E-20261002-neq7t0 Minimal",
+            "note": null,
+            "status": "active",
+            "isPinned": false,
+            "priority": null,
+            "dueDate": null,
+            "mindId": null,
+            "completedAt": null,
+            "completedDates": [],
+            "autoCompleteOnChecklistCompletion": false,
+            "checklist": [],
+            "schedule": null,
+            "location": null,
+            "links": [],
+            "createdAt": "2026-10-02T23:47:14.839Z",
+            "updatedAt": "2026-10-02T23:47:14.845Z"
+          }
+        },
+        "isError": false
+      },
+      "durationMs": 4151
+    }
+  ],
+  "ids": [
+    {
+      "kind": "mind",
+      "id": "701bf635-87a9-41bb-9ce9-802fbfa791bd"
+    },
+    {
+      "kind": "mind",
+      "id": "552b7c03-50ca-4a47-8fcb-3e7bf7a72168"
+    },
+    {
+      "kind": "mind",
+      "id": "d383d0be-57f1-410f-88f9-880ac8741fa0"
+    },
+    {
+      "kind": "mind",
+      "id": "552b7c03-50ca-4a47-8fcb-3e7bf7a72168"
+    },
+    {
+      "kind": "mind",
+      "id": "d383d0be-57f1-410f-88f9-880ac8741fa0"
+    },
+    {
+      "kind": "mind",
+      "id": "d383d0be-57f1-410f-88f9-880ac8741fa0"
+    },
+    {
+      "kind": "memory",
+      "id": "d303bcf9-4afa-4b8f-b652-f8b7ca0ada60"
+    }
+  ],
+  "commands": [
+    {
+      "id": "2bd1e772-aa73-40d8-ad6c-46e63b880ca1",
+      "case": "Mind root create"
+    },
+    {
+      "id": "c7aba7bb-85dd-4cfa-bf46-347efcc0e4e1",
+      "label": "Mind child create",
+      "name": "create_mind",
+      "args": {
+        "name": "E2E-20261002-neq7t0 Child",
+        "parentId": "701bf635-87a9-41bb-9ce9-802fbfa791bd"
+      }
+    },
+    {
+      "id": "8ae777aa-ca61-481b-a54c-438afce7aeda",
+      "label": "Mind grandchild create",
+      "name": "create_mind",
+      "args": {
+        "name": "E2E-20261002-neq7t0 Grandchild",
+        "parentId": "552b7c03-50ca-4a47-8fcb-3e7bf7a72168"
+      }
+    },
+    {
+      "id": "c4f2fe4e-8fa4-4e04-b6d5-5f030ec398b8",
+      "label": "Mind rename color icon order",
+      "name": "update_mind",
+      "args": {
+        "id": "552b7c03-50ca-4a47-8fcb-3e7bf7a72168",
+        "patch": {
+          "name": "E2E-20261002-neq7t0 Child Edited",
+          "colorHex": "#22C55E",
+          "iconName": "star",
+          "sortOrder": 7
+        }
+      }
+    },
+    {
+      "id": "cc3c068c-7cec-42f1-b7f3-ae26c6476d3c",
+      "label": "Mind reject descendant cycle",
+      "name": "update_mind",
+      "args": {
+        "id": "701bf635-87a9-41bb-9ce9-802fbfa791bd",
+        "patch": {
+          "parentId": "d383d0be-57f1-410f-88f9-880ac8741fa0"
+        }
+      }
+    },
+    {
+      "id": "3306ec9b-c22e-4b67-a298-ce75927f6acd",
+      "label": "Mind detach grandchild",
+      "name": "update_mind",
+      "args": {
+        "id": "d383d0be-57f1-410f-88f9-880ac8741fa0",
+        "patch": {
+          "parentId": null
+        }
+      }
+    },
+    {
+      "id": "fdad1a04-82f6-428c-b710-b446857d9557",
+      "label": "Mind reparent grandchild",
+      "name": "update_mind",
+      "args": {
+        "id": "d383d0be-57f1-410f-88f9-880ac8741fa0",
+        "patch": {
+          "parentId": "552b7c03-50ca-4a47-8fcb-3e7bf7a72168"
+        }
+      }
+    },
+    {
+      "id": "0b9f2897-5687-4eef-8d91-ffe7aefd6d6e",
+      "label": "Memory minimal create",
+      "name": "create_memory",
+      "args": {
+        "title": "E2E-20261002-neq7t0 Minimal"
+      }
+    }
+  ],
+  "root": "701bf635-87a9-41bb-9ce9-802fbfa791bd",
+  "child": "552b7c03-50ca-4a47-8fcb-3e7bf7a72168",
+  "grandchild": "d383d0be-57f1-410f-88f9-880ac8741fa0",
+  "minimal": "d303bcf9-4afa-4b8f-b652-f8b7ca0ada60"
+}
