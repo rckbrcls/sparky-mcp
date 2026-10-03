@@ -148,16 +148,16 @@ export const listMemoriesInputShape = {
 };
 export const listMemoriesInputSchema = z.strictObject(listMemoriesInputShape);
 export type ListMemoriesInput = z.infer<typeof listMemoriesInputSchema>;
-// Lenient tool-input schemas: nested fields get sensible defaults so an AI client only sends what it means.
+// Tool inputs reject unknown fields. Omitted fields still receive defaults.
 const timeZoneSchema = scheduleSchema.shape.timeZone;
-const toolRecurrenceSchema = z.object({
+const toolRecurrenceSchema = z.strictObject({
   frequency: z.enum(["minutely", "hourly", "daily", "weekly", "monthly", "yearly"]),
   interval: z.number().int().positive().default(1),
   weekdays: z.array(weekdaySchema).optional().describe("Weekly only."),
   endDate: inputDateSchema.nullable().default(null),
   occurrenceCount: z.number().int().positive().nullable().default(null).describe("Mutually exclusive with endDate."),
 });
-const toolFocusSchema = z.object({
+const toolFocusSchema = z.strictObject({
   enabled: z.boolean().default(true),
   workMinutes: z.number().int().positive().default(25),
   shortBreakMinutes: z.number().int().positive().default(5),
@@ -165,7 +165,7 @@ const toolFocusSchema = z.object({
   pomodorosUntilLongBreak: z.number().int().positive().default(4),
   autoContinue: z.boolean().default(true),
 });
-const toolScheduleSchema = z.object({
+const toolScheduleSchema = z.strictObject({
   fireDate: inputDateSchema.describe("ISO 8601 WITH a UTC offset. Call get_current_time first for relative dates."),
   isAllDay: z.boolean().default(false),
   timeZone: timeZoneSchema.default(config.timeZone),
@@ -173,7 +173,7 @@ const toolScheduleSchema = z.object({
   recurrence: toolRecurrenceSchema.nullable().default(null),
   focus: toolFocusSchema.nullable().default(null),
 });
-const toolLocationSchema = z.object({
+const toolLocationSchema = z.strictObject({
   name: z.string().default(""),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
@@ -181,14 +181,14 @@ const toolLocationSchema = z.object({
   event: z.enum(["onEntry", "onExit"]).default("onEntry"),
   isActive: z.boolean().default(true),
 });
-const toolChecklistItemSchema = z.object({
+const toolChecklistItemSchema = z.strictObject({
   id: idSchema.optional().describe("Keep an existing item's identity; omit for new items."),
   title: z.string().min(1),
   detail: z.string().default(""),
   isCompleted: z.boolean().default(false),
   sortOrder: z.number().int().optional().describe("Defaults to the position in the list."),
 });
-const toolLinkSchema = z.object({ url: z.url(), title: z.string().nullable().default(null) });
+const toolLinkSchema = z.strictObject({ url: z.url(), title: z.string().nullable().default(null) });
 
 /** Fills `sortOrder` from list position; call before queuing a command. */
 export function withChecklistOrder<T extends { checklist?: { sortOrder?: number }[] }>(fields: T): T {
@@ -197,7 +197,7 @@ export function withChecklistOrder<T extends { checklist?: { sortOrder?: number 
 }
 
 const toolMemoryFields = {
-  title: z.string().min(1),
+  title: z.string().trim().min(1),
   note: z.string().nullable(),
   isPinned: z.boolean(),
   priority: z.number().int().nullable(),
@@ -222,7 +222,7 @@ export const createMemoryInputShape = {
   links: toolMemoryFields.links.default([]),
   mind: mindRef,
 };
-const toolMemoryPatchSchema = z.object({ ...toolMemoryFields, mindId: idSchema.nullable() }).partial();
+const toolMemoryPatchSchema = z.strictObject({ ...toolMemoryFields, mindId: idSchema.nullable() }).partial();
 const targetShape = { id: idSchema, baseVersion: inputDateSchema.optional().describe("Entity updatedAt; defaults to the mirror version.") };
 export const updateMemoryInputShape = {
   ...targetShape,
@@ -240,3 +240,11 @@ export const createMindInputShape = mindCreatePayloadSchema.extend({
 }).shape;
 export const updateMindInputShape = { ...targetShape, patch: mindPatchSchema };
 export const idInputShape = { id: idSchema };
+export const idInputSchema = z.strictObject(idInputShape);
+export const createMemoryInputSchema = z.strictObject(createMemoryInputShape);
+export const updateMemoryInputSchema = z.strictObject(updateMemoryInputShape);
+export const setMemoryStatusInputSchema = z.strictObject(setMemoryStatusInputShape);
+export const toggleCheckItemInputSchema = z.strictObject(toggleCheckItemInputShape);
+export const deleteEntityInputSchema = z.strictObject(deleteEntityInputShape);
+export const createMindInputSchema = z.strictObject(createMindInputShape);
+export const updateMindInputSchema = z.strictObject(updateMindInputShape);

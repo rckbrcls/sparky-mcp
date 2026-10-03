@@ -3,9 +3,9 @@ import { config } from "./config.js";
 import { enqueue, getCommand } from "./commands.js";
 import { findMind, getMirror, listMemories, mindTree, mirrorMetadata, type MirrorState } from "./mirror.js";
 import {
-  createMemoryInputShape, createMindInputShape, deleteEntityInputShape, idInputShape,
-  listMemoriesInputShape, setMemoryStatusInputShape, toggleCheckItemInputShape,
-  updateMemoryInputShape, updateMindInputShape, type CommandType,
+  createMemoryInputSchema, createMindInputSchema, deleteEntityInputSchema, idInputSchema,
+  listMemoriesInputSchema, setMemoryStatusInputSchema, toggleCheckItemInputSchema,
+  updateMemoryInputSchema, updateMindInputSchema, type CommandType,
   withChecklistOrder,
 } from "./schema.js";
 
@@ -58,12 +58,12 @@ export function createMcpServer(): McpServer {
 
   server.registerTool("list_memories", {
     description: "Returns memory summaries from the mirror. Filter by Mind name or ID, status, pinned state, inclusive due date range, or case-insensitive title/note/checklist text. Default limit is 50. Includes syncedAt and stale=true when applicable.",
-    inputSchema: listMemoriesInputShape,
+    inputSchema: listMemoriesInputSchema,
   }, async (input) => respond(() => listMemories(input)));
 
   server.registerTool("get_memory", {
     description: "Returns a full synced Memory by UUID, including checklist, schedule, location, links, and updatedAt version. Includes syncedAt and stale=true when applicable.",
-    inputSchema: idInputShape,
+    inputSchema: idInputSchema,
   }, async ({ id }) => respond(() => {
     const mirror = getMirror();
     return { ...mirrorMetadata(mirror), memory: memoryTarget(id, mirror) };
@@ -71,7 +71,7 @@ export function createMcpServer(): McpServer {
 
   server.registerTool("get_command_status", {
     description: "Returns a queued command's state (pending, claimed, done, failed, conflict), result, and error by command UUID. Finished commands are retained for 30 days. Includes mirror sync metadata.",
-    inputSchema: idInputShape,
+    inputSchema: idInputSchema,
   }, async ({ id }) => respond(() => {
     const command = getCommand(id);
     if (!command) throw new Error(`Command ${id} was not found.`);
@@ -80,7 +80,7 @@ export function createMcpServer(): McpServer {
 
   server.registerTool("create_memory", {
     description: "Queues creation of a Memory in Sparky. Supply a title and optional note, Mind name or ID, pin, priority, dueDate, checklist, schedule (including recurrence/focus configuration), location, and links. Omit mind or use null for the default folder. Dates accept ISO 8601 with UTC offsets. Checklist IDs may be omitted for new items. Focus sessions cannot be controlled. Returns commandId and pending; the app applies it on sync.",
-    inputSchema: createMemoryInputShape,
+    inputSchema: createMemoryInputSchema,
   }, async ({ mind, ...fields }) => respond(() => {
     const mirror = getMirror();
     const mindId = mind == null ? null : findMind(mind, mirror).id;
@@ -89,7 +89,7 @@ export function createMcpServer(): McpServer {
 
   server.registerTool("update_memory", {
     description: "Queues a patch for an existing Memory UUID. Absent fields stay unchanged; null clears nullable fields. Checklist replaces the entire list; preserve item IDs to keep identity. Use patch.mind to resolve a folder name or ID, or patch.mindId directly. baseVersion defaults to the mirror's updatedAt; override with the version you saw. Returns commandId and pending; a changed version causes conflict when applied.",
-    inputSchema: updateMemoryInputShape,
+    inputSchema: updateMemoryInputSchema,
   }, async ({ id, baseVersion, patch }) => respond(() => {
     const mirror = getMirror();
     const memory = memoryTarget(id, mirror);
@@ -101,7 +101,7 @@ export function createMcpServer(): McpServer {
 
   server.registerTool("set_memory_status", {
     description: "Queues active or completed status for an existing Memory UUID. For a recurring memory, occurrenceDate marks one occurrence; omit it for the whole memory. baseVersion defaults to the mirror updatedAt. Returns commandId and pending.",
-    inputSchema: setMemoryStatusInputShape,
+    inputSchema: setMemoryStatusInputSchema,
   }, async ({ id, baseVersion, status, occurrenceDate }) => respond(() => {
     const memory = memoryTarget(id, getMirror());
     return pending("memory.setStatus", id, baseVersion ?? memory.updatedAt, { status, occurrenceDate });
@@ -109,7 +109,7 @@ export function createMcpServer(): McpServer {
 
   server.registerTool("toggle_check_item", {
     description: "Queues toggling a checklist item's completion for an existing Memory and item UUID. Optional occurrenceDate identifies a recurring occurrence. baseVersion defaults to the memory's mirror updatedAt. Returns commandId and pending.",
-    inputSchema: toggleCheckItemInputShape,
+    inputSchema: toggleCheckItemInputSchema,
   }, async ({ id, baseVersion, itemId, occurrenceDate }) => respond(() => {
     const memory = memoryTarget(id, getMirror());
     if (!memory.checklist.some((item) => item.id === itemId)) throw new Error(`Checklist item ${itemId} is not present in memory ${id}.`);
@@ -118,7 +118,7 @@ export function createMcpServer(): McpServer {
 
   server.registerTool("delete_memory", {
     description: "Queues deletion of an existing Memory UUID. Requires confirm:true. baseVersion defaults to the mirror updatedAt. Returns commandId and pending.",
-    inputSchema: deleteEntityInputShape,
+    inputSchema: deleteEntityInputSchema,
   }, async ({ id, baseVersion }) => respond(() => {
     const memory = memoryTarget(id, getMirror());
     return pending("memory.delete", id, baseVersion ?? memory.updatedAt, {});
@@ -126,7 +126,7 @@ export function createMcpServer(): McpServer {
 
   server.registerTool("create_mind", {
     description: "Queues creation of a Mind folder with name, optional colorHex, iconName, sortOrder, and parentId. A parent UUID must exist in the mirror. Returns commandId and pending.",
-    inputSchema: createMindInputShape,
+    inputSchema: createMindInputSchema,
   }, async (input) => respond(() => {
     validateMindId(input.parentId, getMirror());
     return pending("mind.create", null, null, input);
@@ -134,7 +134,7 @@ export function createMcpServer(): McpServer {
 
   server.registerTool("update_mind", {
     description: "Queues a patch for an existing Mind UUID: name, colorHex, iconName, sortOrder, or parentId. Absent fields stay unchanged; null clears nullable fields. baseVersion defaults to the mirror updatedAt. Returns commandId and pending.",
-    inputSchema: updateMindInputShape,
+    inputSchema: updateMindInputSchema,
   }, async ({ id, baseVersion, patch }) => respond(() => {
     const mirror = getMirror();
     const mind = mindTarget(id, mirror);
@@ -144,7 +144,7 @@ export function createMcpServer(): McpServer {
 
   server.registerTool("delete_mind", {
     description: "Queues deletion of an existing Mind and all its child Minds recursively. Memories in every deleted Mind move to the Inbox. Requires confirm:true. baseVersion defaults to the mirror updatedAt. Returns commandId and pending.",
-    inputSchema: deleteEntityInputShape,
+    inputSchema: deleteEntityInputSchema,
   }, async ({ id, baseVersion }) => respond(() => {
     const mind = mindTarget(id, getMirror());
     return pending("mind.delete", id, baseVersion ?? mind.updatedAt, {});
